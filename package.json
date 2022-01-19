@@ -4,7 +4,6 @@
   "private": true,
   "dependencies": {
     "@aws-amplify/auth": "^4.3.19",
-    "@aws-amplify/cli": "^7.6.5",
     "@aws-amplify/core": "^4.3.11",
     "@emotion/react": "^11.7.1",
     "@emotion/styled": "^11.6.0",

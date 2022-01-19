@@ -4,11 +4,14 @@ import ScrollToBottom from "react-scroll-to-bottom";
 import Amplify, { Auth } from "aws-amplify";
 import {
   Box,
-  ButtonGroup,
   Button,
   TextField,
   Paper,
   Divider,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from "@mui/material";
 
 import "./App.css";
@@ -43,23 +46,27 @@ const initXMPP = async (jid, password) =>
 
 const App = () => {
   const [client, setClient] = useState(null);
-  const [username, setUsername] = useState(
-    localStorage.getItem("username") || ""
-  );
+  const [username, setUsername] = useState(localStorage.getItem("username") || "");
   const [password, setPassword] = useState("Green12345!");
   const [jid, setJid] = useState("");
+  const [jwt, setJwt] = useState("");
   const [message, setMessage] = useState("");
   const [logs, setLogs] = useState("");
   const [to, setTo] = useState("");
   const [online, setOnline] = useState(false);
   const [status, setStatus] = useState("");
   const [roster, setRoster] = useState([]);
+  const [rosterPresence, setRosterPresence] = useState({});
   const [newContact, setNewContact] = useState("");
+  const [invitee, setInvitee] = useState("");
+  const [incomingInvites, setIncomingInvites] = useState([]);
+  const [inviteResponses, setInviteResponses] = useState({});
+  const [meetingId, setMeetingId] = useState("");
   const [newName, setNewName] = useState("");
   const [contactRequests, setContactRequests] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-
+  
   const signIn = async () => {
     setError("");
     setLoading(true);
@@ -72,6 +79,7 @@ const App = () => {
       );
       console.log(session);
       const jwt = session.idToken.jwtToken;
+      setJwt(jwt);
       const jid = `${uuid}@${HOSTNAME}`;
       setJid(jid);
       const xmpp = await initXMPP(jid, jwt);
@@ -93,6 +101,10 @@ const App = () => {
 
       xmpp.on("message", (message) => {
         log(JSON.stringify(message));
+
+        if (message.type === 'meeting-invite') {
+          setIncomingInvites((prev) => [...prev, message]);
+        }
       });
 
       xmpp.on("subscribe", (data) => {
@@ -103,6 +115,21 @@ const App = () => {
       xmpp.on("roster:update", async () =>
         setRoster((await xmpp.getRoster()).items)
       );
+      
+      xmpp.on("presence", (data) => {
+        const user = data.from.replace(/\/.*$/, "");
+        const status = data.type === 'unavailable' ? 'Unavailable' : data.status;
+        if (user === jid) {
+          setStatus(data.status || '');
+        } else {
+          setRosterPresence((prev) => ({ ...prev, [user]: status }));
+        }
+      });
+
+      xmpp.on("available", (data) => {
+        const jid = data.from.replace(/\/.*$/, "");
+        setRosterPresence((prev) => ({ ...prev, [jid]: 'Available' }));
+      });
 
       xmpp.on("*", async (type, data) => {
         console.log(type, data);
@@ -155,8 +182,43 @@ const App = () => {
   const clearLog = () => setLogs("");
 
   const sendMessage = () => {
-    client.sendMessage({ to, body: message });
+    client.sendMessage({ to, body: message, type: 'chat' });
     setMessage("");
+  };
+
+  const invite = async () => {
+    const body = meetingId || await createMeeting();
+    client.sendMessage({ to: invitee, body, type: 'meeting-invite' });
+  };
+  
+  const acceptInvite = (message) => {
+    setInviteResponses((prev) => ({ ...prev, [message.id]: "accept" }))
+    client.sendMessage({ to: message.from, body: message.id, type: 'meeting-invite-accept' });
+  };
+
+  const rejectInvite = (message) => {
+    setInviteResponses((prev) => ({ ...prev, [message.id]: "reject" }))
+    client.sendMessage({ to: message.from, body: message.id, type: 'meeting-invite-reject' });
+  };
+  
+  const createMeeting = async () => {
+    const API_BASE = `https://buj24ap8m7.execute-api.us-east-1.amazonaws.com/prod`;
+    const url = `${API_BASE}/api/meeting`;
+    const mstart = parseInt(new Date().getTime() / 1000);
+
+    const formData = new FormData();
+    formData.append("name", "Instant Meeting");
+    formData.append("mstart", mstart.toString());
+    formData.append("duration", "3600");
+    // formData.append("cron", "");
+
+    return fetch(url, {
+      method: "POST",
+      headers: {
+        Authorization: jwt,
+      },
+      body: formData,
+    }).then(res => res.json());
   };
 
   const sendStatus = () => client.sendPresence({ status });
@@ -187,6 +249,12 @@ const App = () => {
 
   return (
     <div className="App">
+      <IncomingInvites
+        accept={acceptInvite}
+        reject={rejectInvite}
+        invites={incomingInvites}
+        responses={inviteResponses} />
+
       <Box component="section">
         {!online ? (
           <>
@@ -215,11 +283,9 @@ const App = () => {
           <>
             <h3>{jid}</h3>
 
-            <Divider />
-
             <TextField
               size="small"
-              label="Change Name"
+              label="Name"
               onChange={(e) => setNewName(e.target.value)}
               value={newName}
               onKeyDown={(e) => e.key === "Enter" && changeName()}
@@ -228,14 +294,39 @@ const App = () => {
               }}
             />
 
-            <Divider />
+            <TextField
+              size="small"
+              label="Status"
+              onChange={(e) => setStatus(e.target.value)}
+              value={status}
+              onKeyDown={(e) => e.key === "Enter" && sendStatus()}
+              InputProps={{
+                endAdornment: <Button onClick={sendStatus}>Set</Button>,
+              }}
+            />
+
+            <h3>Send Contact Request</h3>
 
             <TextField
               size="small"
-              label="To"
+              label="To (JID)"
+              onChange={(e) => setNewContact(e.target.value)}
+              value={newContact}
+              onKeyDown={(e) => e.key === "Enter" && addContact()}
+              InputProps={{
+                endAdornment: <Button onClick={addContact}>Add</Button>,
+              }}
+            />
+
+            <h3>Send a Message</h3>
+
+            <TextField
+              size="small"
+              label="To (JID)"
               onChange={(e) => setTo(e.target.value)}
               value={to}
             />
+
             <TextField
               size="small"
               label="Message"
@@ -247,29 +338,24 @@ const App = () => {
               }}
             />
 
-            <Divider />
+            <h3>Invite to Meeting</h3>
 
             <TextField
               size="small"
-              label="Add Contact"
-              onChange={(e) => setNewContact(e.target.value)}
-              value={newContact}
-              onKeyDown={(e) => e.key === "Enter" && addContact()}
-              InputProps={{
-                endAdornment: <Button onClick={addContact}>Add</Button>,
-              }}
+              label="To (JID)"
+              onChange={(e) => setInvitee(e.target.value)}
+              value={invitee}
+              onKeyDown={(e) => e.key === "Enter" && invite()}
             />
 
-            <Divider />
-
             <TextField
               size="small"
-              label="Status"
-              onChange={(e) => setStatus(e.target.value)}
-              value={status}
-              onKeyDown={(e) => e.key === "Enter" && sendStatus()}
+              label="Meeting ID (leave blank to create instant meeting)"
+              onChange={(e) => setMeetingId(e.target.value)}
+              value={meetingId}
+              onKeyDown={(e) => e.key === "Enter" && invite()}
               InputProps={{
-                endAdornment: <Button onClick={sendStatus}>Set</Button>,
+                endAdornment: <Button onClick={invite}>Invite</Button>,
               }}
             />
 
@@ -296,6 +382,7 @@ const App = () => {
           <Box component="section" sx={{ width: "20vw" }}>
             <Roster
               roster={roster}
+              rosterPresence={rosterPresence}
               contactRequests={contactRequests}
               removeContact={removeContact}
               acceptSubscription={acceptSubscription}
@@ -314,6 +401,7 @@ const App = () => {
 
 const Roster = ({
   roster,
+  rosterPresence,
   contactRequests,
   removeContact,
   acceptSubscription,
@@ -325,7 +413,7 @@ const Roster = ({
     <ul>
       {roster.map((u) => (
         <li key={u.jid}>
-          {u.jid} ({u.subscription})
+          {u.jid} ({u.subscription}) [{rosterPresence[u.jid]}])
           <Button color="error" onClick={() => removeContact(u.jid)}>
             Remove
           </Button>
@@ -375,6 +463,22 @@ const Logs = ({ logs, clearLog }) => (
     </Button>
   </>
 );
+
+const IncomingInvites = ({ accept, reject, invites, responses }) =>
+  invites.filter((m) => !responses[m.id]).map((m) => (
+    <Dialog key={m.id} open={true}>
+      <DialogTitle>Meeting Invite</DialogTitle>
+      <DialogContent>
+        <p>Invite ID: {m.id}</p>
+        <p>From: {m.from}</p>
+        <p>Meeting ID: {m.body}</p>
+      </DialogContent>
+      <DialogActions>
+        <Button color="error" onClick={() => reject(m)}>Reject</Button>
+        <Button onClick={() => accept(m)}>Accept</Button>
+      </DialogActions>
+    </Dialog>
+  ));
 
 function formatXml(xml, tab) {
   // tab = optional indent value, default is tab (\t)
