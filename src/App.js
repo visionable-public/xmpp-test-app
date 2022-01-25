@@ -22,7 +22,7 @@ const USER_POOL_ID = "us-east-1_Lr7XLDbJq";
 const USER_POOL_WEB_CLIENT_ID = "6ln0t56mg9gpo6b20t1g7pg4j";
 
 // XMPP Config
-const HOSTNAME = "saas-msg.visionable.one"; // jabber.visionable.io
+const HOSTNAME = "saas-msg.visionable.one";// jabber.visionable.io
 const PROTOCOL = "wss";
 const PORT = "5443"; // 5280
 const ENDPOINT = "ws-xmpp"; // ws
@@ -246,6 +246,21 @@ const App = () => {
       console.error("Error getting vcard", e);
     }
   };
+  
+  const uploadFile = (e) => {
+    Array.from(e.target.files).forEach(async (f) => {
+      const { name, size, type: mediaType } = f;
+      console.log('file', name, size, mediaType);
+      const service = await client.getUploadService();
+      console.log('service', service);
+      const slot = await client.getUploadSlot(service.jid, { name, size, mediaType })
+      console.log('slot', slot);
+      const { download: downloadUrl, upload: { url: uploadUrl } } = slot; 
+      console.log('got urls', downloadUrl, uploadUrl);
+      const res = fetch(uploadUrl, { method: "PUT", body: f });
+      console.log('res', res);
+    })
+  }
 
   return (
     <div className="App">
@@ -337,7 +352,12 @@ const App = () => {
                 endAdornment: <Button onClick={sendMessage}>Send</Button>,
               }}
             />
-
+    
+            <Button variant="contained" component="label">
+              Send File
+              <input onChange={uploadFile} type="file" hidden />
+            </Button>
+            
             <h3>Invite to Meeting</h3>
 
             <TextField
