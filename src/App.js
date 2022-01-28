@@ -115,7 +115,7 @@ const App = () => {
       xmpp.on("roster:update", async () =>
         setRoster((await xmpp.getRoster()).items)
       );
-      
+
       xmpp.on("presence", (data) => {
         const user = data.from.replace(/\/.*$/, "");
         const status = data.type === 'unavailable' ? 'Unavailable' : data.status;
@@ -190,7 +190,7 @@ const App = () => {
     const body = meetingId || await createMeeting();
     client.sendMessage({ to: invitee, body, type: 'meeting-invite' });
   };
-  
+
   const acceptInvite = (message) => {
     setInviteResponses((prev) => ({ ...prev, [message.id]: "accept" }))
     client.sendMessage({ to: message.from, body: message.id, type: 'meeting-invite-accept' });
@@ -200,7 +200,7 @@ const App = () => {
     setInviteResponses((prev) => ({ ...prev, [message.id]: "reject" }))
     client.sendMessage({ to: message.from, body: message.id, type: 'meeting-invite-reject' });
   };
-  
+
   const createMeeting = async () => {
     const API_BASE = `https://buj24ap8m7.execute-api.us-east-1.amazonaws.com/prod`;
     const url = `${API_BASE}/api/meeting`;
@@ -246,18 +246,22 @@ const App = () => {
       console.error("Error getting vcard", e);
     }
   };
-  
+
   const uploadFile = (e) => {
     Array.from(e.target.files).forEach(async (f) => {
-      const { name, size, type: mediaType } = f;
+      const { name, size, type: mediaType } = f; // TODO files with spaces in name fail
       console.log('file', name, size, mediaType);
       const service = await client.getUploadService();
       console.log('service', service);
       const slot = await client.getUploadSlot(service.jid, { name, size, mediaType })
       console.log('slot', slot);
-      const { download: downloadUrl, upload: { url: uploadUrl } } = slot; 
+      const { download: downloadUrl, upload: { url: uploadUrl } } = slot;
       console.log('got urls', downloadUrl, uploadUrl);
-      const res = fetch(uploadUrl, { method: "PUT", body: f });
+      const res = fetch(uploadUrl, {
+        method: "PUT",
+        body: f,
+        headers: { "x-amz-acl": "public-read" },
+      });
       console.log('res', res);
     })
   }
