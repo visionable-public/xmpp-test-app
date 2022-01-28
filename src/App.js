@@ -66,7 +66,7 @@ const App = () => {
   const [contactRequests, setContactRequests] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  
+
   const signIn = async () => {
     setError("");
     setLoading(true);
@@ -257,12 +257,17 @@ const App = () => {
       console.log('slot', slot);
       const { download: downloadUrl, upload: { url: uploadUrl } } = slot;
       console.log('got urls', downloadUrl, uploadUrl);
-      const res = fetch(uploadUrl, {
+      const res = await fetch(uploadUrl, {
         method: "PUT",
         body: f,
         headers: { "x-amz-acl": "public-read" },
       });
       console.log('res', res);
+
+      if (to) { // send notification
+        client.sendMessage({ to, body: downloadUrl, type: 'file-upload' });
+      }
+
     })
   }
 
