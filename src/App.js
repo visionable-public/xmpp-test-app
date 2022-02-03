@@ -223,7 +223,10 @@ const App = () => {
 
   const sendStatus = () => client.sendPresence({ status });
 
-  const getMessageArchive = () => {};
+  const getMessageArchive = async () => {
+    const history = await client.searchHistory(to);
+    console.log('got history', history);
+  };
 
   const onChangeUsername = (e) => {
     setUsername(e.target.value);
@@ -361,12 +364,16 @@ const App = () => {
                 endAdornment: <Button onClick={sendMessage}>Send</Button>,
               }}
             />
-    
+
             <Button variant="contained" component="label">
               Send File
               <input onChange={uploadFile} type="file" hidden />
             </Button>
-            
+
+            <Button variant="contained" onClick={getMessageArchive}>
+              Get Message Archive
+            </Button>
+
             <h3>Invite to Meeting</h3>
 
             <TextField
@@ -390,9 +397,6 @@ const App = () => {
 
             <Divider />
 
-            <Button variant="contained" onClick={getMessageArchive}>
-              Get Message Archive
-            </Button>
             <Button variant="contained" onClick={getVCard}>
               Get VCard
             </Button>
