@@ -1,3 +1,6 @@
 # Visionable XMPP Test App
 
-docs coming soon
+## Installation
+
+`yarn`
+`yarn run`
