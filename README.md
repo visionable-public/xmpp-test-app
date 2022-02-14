@@ -1,6 +1,7 @@
 # Visionable XMPP Test App
 
-## Installation
+## Installation & Dev
 
 `yarn`
-`yarn run`
+
+`yarn start`
