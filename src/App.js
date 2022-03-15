@@ -16,10 +16,11 @@ import {
 
 import "./App.css";
 
-// Cognito Config
+// AWS Config
 const REGION = "us-east-1";
-const USER_POOL_ID = "us-east-1_Lr7XLDbJq";
-const USER_POOL_WEB_CLIENT_ID = "6ln0t56mg9gpo6b20t1g7pg4j";
+const USER_POOL_ID = "us-east-1_ESYPvGhN3";
+const USER_POOL_WEB_CLIENT_ID = "5ai2feek1rgpso497om1kbj4ug";
+const API_BASE = "https://saas-api.visionable.one";
 
 // XMPP Config
 const HOSTNAME = "saas-msg.visionable.one";// jabber.visionable.io
@@ -202,7 +203,6 @@ const App = () => {
   };
 
   const createMeeting = async () => {
-    const API_BASE = `https://buj24ap8m7.execute-api.us-east-1.amazonaws.com/prod`;
     const url = `${API_BASE}/api/meeting`;
     const mstart = parseInt(new Date().getTime() / 1000);
 
