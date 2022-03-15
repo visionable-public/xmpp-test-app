@@ -12,6 +12,7 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  Autocomplete,
 } from "@mui/material";
 
 import "./App.css";
@@ -67,6 +68,7 @@ const App = () => {
   const [contactRequests, setContactRequests] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [users, setUsers] = useState([]);
 
   const signIn = async () => {
     setError("");
@@ -85,9 +87,13 @@ const App = () => {
       setJid(jid);
       const xmpp = await initXMPP(jid, jwt);
 
+      console.log(jid, jwt)
+
       setLoading(false);
 
       setClient(xmpp);
+
+      setUsers(await getAllUsers(jwt));
 
       window.client = xmpp;
 
@@ -224,8 +230,12 @@ const App = () => {
   const sendStatus = () => client.sendPresence({ status });
 
   const getMessageArchive = async () => {
-    const history = await client.searchHistory(to);
-    console.log('got history', history);
+    try {
+      const history = await client.searchHistory({ with: to });
+      console.log('got history', history);
+    } catch (e) {
+      console.log("Error getting history", e);
+    }
   };
 
   const onChangeUsername = (e) => {
@@ -344,6 +354,17 @@ const App = () => {
                 endAdornment: <Button onClick={addContact}>Add</Button>,
               }}
             />
+
+            <Autocomplete
+              disablePortal
+              onChange={(e) => setNewContact(e.target.value)}
+              options={users.map(u => ({ label: u.user_firstname + ' ' + u.user_lastname, id: u.user_id }))}
+              renderInput={(params) => <TextField {...params} label="User" />}
+            />
+
+            New Contact: {newContact}
+
+            <Button onClick={addContact}>Add</Button>
 
             <h3>Send a Message</h3>
 
@@ -524,6 +545,18 @@ function formatXml(xml, tab) {
     if (node.match(/^<?\w[^>]*[^\/]$/)) indent += tab; // increase indent
   });
   return formatted.substring(1, formatted.length - 3);
+}
+
+const getAllUsers = async (jwt) => {
+  const res = await fetch(`${API_BASE}/api/user`, {
+    headers: {
+      Authorization: jwt,
+    },
+  })
+
+  return res.ok
+    ? res.json()
+    : [];
 }
 
 export default App;
