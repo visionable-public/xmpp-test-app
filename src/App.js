@@ -59,6 +59,7 @@ const App = () => {
   const [status, setStatus] = useState("");
   const [roster, setRoster] = useState([]);
   const [rosterPresence, setRosterPresence] = useState({});
+  const [rosterNames, setRosterNames] = useState({});
   const [newContact, setNewContact] = useState("");
   const [invitee, setInvitee] = useState("");
   const [incomingInvites, setIncomingInvites] = useState([]);
@@ -114,6 +115,7 @@ const App = () => {
         }
       });
 
+
       xmpp.on("subscribe", (data) => {
         console.log("on subscribe", data);
         setContactRequests((prev) => prev.concat([data.from]));
@@ -125,11 +127,23 @@ const App = () => {
 
       xmpp.on("presence", (data) => {
         const user = data.from.replace(/\/.*$/, "");
-        const status = data.type === 'unavailable' ? 'Unavailable' : data.status;
-        if (user === jid) {
-          setStatus(data.status || '');
-        } else {
-          setRosterPresence((prev) => ({ ...prev, [user]: status }));
+        const type = data.type;
+
+        if (type === 'unavailable') {
+          setRosterPresence((prev) => ({ ...prev, [user]: type }));
+        } else if (data.status) {
+          const statusObject = JSON.parse(data.status);
+          const { handle, status } = statusObject;
+          console.log('handle', handle);
+          // TODO setHandle for user
+
+          if (user === jid) {
+            setStatus(status || '');
+            setNewName(handle || '');
+          } else {
+            setRosterPresence((prev) => ({ ...prev, [user]: status }));
+            setRosterNames((prev) => ({ ...prev, [user]: handle }));
+          }
         }
       });
 
@@ -227,7 +241,14 @@ const App = () => {
     }).then(res => res.json());
   };
 
-  const sendStatus = () => client.sendPresence({ status });
+  const sendStatus = () => {
+    const richPresence = JSON.stringify({
+      status: status,
+      handle: newName,
+    });
+    client.sendPresence({ status: richPresence });
+    // client.sendPresence({ status });
+  };
 
   const getMessageArchive = async () => {
     try {
@@ -248,7 +269,11 @@ const App = () => {
     setError(null);
   };
 
-  const changeName = () => client.publishVCard({ fullName: newName });
+  /*
+  const changeName = () => {
+    // client.publishVCard({ fullName: newName });
+  };
+*/
 
   const getVCard = async () => {
     try {
@@ -283,6 +308,9 @@ const App = () => {
 
     })
   }
+
+  const joinMUC = (name) => {
+  };
 
   return (
     <div className="App">
@@ -325,9 +353,9 @@ const App = () => {
               label="Name"
               onChange={(e) => setNewName(e.target.value)}
               value={newName}
-              onKeyDown={(e) => e.key === "Enter" && changeName()}
+              onKeyDown={(e) => e.key === "Enter" && sendStatus()}
               InputProps={{
-                endAdornment: <Button onClick={changeName}>Set</Button>,
+                endAdornment: <Button onClick={sendStatus}>Set</Button>,
               }}
             />
 
@@ -355,16 +383,24 @@ const App = () => {
               }}
             />
 
-            <Autocomplete
-              disablePortal
-              onChange={(e) => setNewContact(e.target.value)}
-              options={users.map(u => ({ label: u.user_firstname + ' ' + u.user_lastname, id: u.user_id }))}
-              renderInput={(params) => <TextField {...params} label="User" />}
-            />
+            {/* <Autocomplete */}
+            {/*   disablePortal */}
+            {/*   freeSolo */}
+            {/*   value={newContact} */}
+            {/*   // inputValue={users.find(u => u.user_id === newContact)?.user_name} */}
+            {/*   inputValue={userDisplayName(users.find(u => u.user_id))} */}
+            {/*   onChange={(_, u) => u && setNewContact(u.id)} */}
+            {/*   options={users.map(u => ({ */}
+            {/*       label: userDisplayName(u), */}
+            {/*       id: u.user_id, */}
+            {/*       // key: u.user_id */}
+            {/*     }))} */}
+            {/*   renderInput={(params) => <TextField {...params} label="User" />} */}
+            {/* /> */}
 
-            New Contact: {newContact}
+            {/* New Contact: {newContact} */}
 
-            <Button onClick={addContact}>Add</Button>
+            {/* <Button variant="contained" onClick={addContact}>Add</Button> */}
 
             <h3>Send a Message</h3>
 
@@ -437,6 +473,7 @@ const App = () => {
             <Roster
               roster={roster}
               rosterPresence={rosterPresence}
+              rosterNames={rosterNames}
               contactRequests={contactRequests}
               removeContact={removeContact}
               acceptSubscription={acceptSubscription}
@@ -456,6 +493,7 @@ const App = () => {
 const Roster = ({
   roster,
   rosterPresence,
+  rosterNames,
   contactRequests,
   removeContact,
   acceptSubscription,
@@ -467,7 +505,7 @@ const Roster = ({
     <ul>
       {roster.map((u) => (
         <li key={u.jid}>
-          {u.jid} ({u.subscription}) [{rosterPresence[u.jid]}])
+            {rosterNames[u.jid]} ({u.jid}) ({u.subscription}) [{rosterPresence[u.jid]}])
           <Button color="error" onClick={() => removeContact(u.jid)}>
             Remove
           </Button>
@@ -558,5 +596,7 @@ const getAllUsers = async (jwt) => {
     ? res.json()
     : [];
 }
+
+const userDisplayName = (u) => `${u.user_firstname} ${u.user_lastname} (${u.user_email})`;
 
 export default App;
