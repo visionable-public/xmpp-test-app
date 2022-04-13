@@ -1,7 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import * as XMPP from "stanza";
-import ScrollToBottom from "react-scroll-to-bottom";
-import Amplify, { Auth } from "aws-amplify";
+import Amplify, { Auth, Hub } from "aws-amplify";
 import {
   Box,
   Button,
@@ -12,10 +11,15 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Autocomplete,
+  // Autocomplete,
+  Snackbar,
+  Alert,
 } from "@mui/material";
 
 import "./App.css";
+import Login from "./login";
+import Roster from "./roster";
+import SideBar from "./sidebar";
 
 // AWS Config
 const REGION = "us-east-1";
@@ -24,10 +28,12 @@ const USER_POOL_WEB_CLIENT_ID = "5ai2feek1rgpso497om1kbj4ug";
 const API_BASE = "https://saas-api.visionable.one";
 
 // XMPP Config
-const HOSTNAME = "saas-msg.visionable.one";// jabber.visionable.io
+const HOSTNAME = "saas-msg.visionable.one";
 const PROTOCOL = "wss";
-const PORT = "5443"; // 5280
-const ENDPOINT = "ws-xmpp"; // ws
+const PORT = "5443";
+const ENDPOINT = "ws-xmpp";
+const MUC_HOSTNAME = `muc.${HOSTNAME}`;
+const MUC_LIGHT_HOSTNAME = `muclight.${HOSTNAME}`;
 
 Amplify.configure({
   Auth: {
@@ -37,10 +43,14 @@ Amplify.configure({
   },
 });
 
+const resource = localStorage.getItem("xmpp-resource") || crypto.randomUUID();
+localStorage.setItem("xmpp-resource", resource);
+
 const initXMPP = async (jid, password) =>
   XMPP.createClient({
     jid,
     password,
+    resource,
     transports: {
       websocket: `${PROTOCOL}://${HOSTNAME}:${PORT}/${ENDPOINT}`,
     },
@@ -53,23 +63,23 @@ const App = () => {
   const [jid, setJid] = useState("");
   const [jwt, setJwt] = useState("");
   const [message, setMessage] = useState("");
-  const [logs, setLogs] = useState("");
   const [to, setTo] = useState("");
   const [online, setOnline] = useState(false);
   const [status, setStatus] = useState("");
   const [roster, setRoster] = useState([]);
   const [rosterPresence, setRosterPresence] = useState({});
-  const [rosterNames, setRosterNames] = useState({});
+  // const [rosterNames, setRosterNames] = useState({});
   const [newContact, setNewContact] = useState("");
-  const [invitee, setInvitee] = useState("");
   const [incomingInvites, setIncomingInvites] = useState([]);
   const [inviteResponses, setInviteResponses] = useState({});
-  const [meetingId, setMeetingId] = useState("");
   const [newName, setNewName] = useState("");
   const [contactRequests, setContactRequests] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [users, setUsers] = useState([]);
+  const [allUsers, setAllUsers] = useState([]);
+  const [nav, setNav] = useState("contacts");
+  const [messages, setMessages] = useState([]);
+  const [connected, setConnected] = useState(false);
 
   const signIn = async () => {
     setError("");
@@ -81,6 +91,7 @@ const App = () => {
         username,
         password
       );
+      window.Auth = Auth;
       console.log(session);
       const jwt = session.idToken.jwtToken;
       setJwt(jwt);
@@ -93,8 +104,9 @@ const App = () => {
       setLoading(false);
 
       setClient(xmpp);
+      setConnected(true);
 
-      setUsers(await getAllUsers(jwt));
+      setAllUsers(await getAllUsers(jwt));
 
       window.client = xmpp;
 
@@ -104,21 +116,42 @@ const App = () => {
         xmpp.enableCarbons();
         setOnline(true);
 
-        setRoster((await xmpp.getRoster()).items);
+        const roster = (await xmpp.getRoster()).items;
+        setRoster(roster);
+
+        // get all messages on start
+        // getAllMessages(uuid, jwt);
+        roster.forEach((r) => {
+          xmpp.searchHistory({ with: r.jid });
+        });
       });
 
       xmpp.on("message", (message) => {
-        log(JSON.stringify(message));
-
         if (message.type === 'meeting-invite') {
           setIncomingInvites((prev) => [...prev, message]);
+        } else if (message.type === "chat") {
+          setMessages((prev) => [...prev, message]);
         }
       });
 
+      xmpp.on("message:sent", (message) => {
+        if (message.type === 'meeting-invite') {
+          // TODO: display something in the chat
+        } else if (message.type === "chat") {
+          setMessages((prev) => [...prev, message]);
+        }
+      });
 
+      xmpp.on("mam:item", (mam) => {
+        const message = mam.archive?.item?.message;
+        console.log("MAM MESSAGE", message);
+        setMessages((prev) => [...prev, message]);
+      });
+
+      // if someone subscribes to us, automatically subscribe back
       xmpp.on("subscribe", (data) => {
         console.log("on subscribe", data);
-        setContactRequests((prev) => prev.concat([data.from]));
+        xmpp.subscribe(data.from);
       });
 
       xmpp.on("roster:update", async () =>
@@ -133,6 +166,7 @@ const App = () => {
           setRosterPresence((prev) => ({ ...prev, [user]: type }));
         } else if (data.status) {
           const statusObject = JSON.parse(data.status);
+          /*
           const { handle, status } = statusObject;
           console.log('handle', handle);
           // TODO setHandle for user
@@ -144,6 +178,7 @@ const App = () => {
             setRosterPresence((prev) => ({ ...prev, [user]: status }));
             setRosterNames((prev) => ({ ...prev, [user]: handle }));
           }
+*/
         }
       });
 
@@ -156,7 +191,15 @@ const App = () => {
         console.log(type, data);
       });
 
-      // TODO on disconnect, retry
+      // on disconnect, retry
+      xmpp.on("disconnected", () => {
+        setConnected(false);
+        // setTimeout(xmpp.connect, 3000)
+      })
+
+      xmpp.on("connected", () => {
+        setConnected(true);
+      })
 
       xmpp.connect();
     } catch (e) {
@@ -166,7 +209,35 @@ const App = () => {
     }
   };
 
+  // TODO: re-authenticate when our JWT refreshes
+  useEffect(() => {
+    Hub.listen('auth', (data) => {
+      console.log("Hub event", data);
+      if (data.payload.event === "tokenRefresh") {
+        console.log("token refreshed", data);
+      }
+    });
+  }, []);
+
+  // extend the roster with info from the User API
+  // TODO: stop doing this and figure out how to use XMPP. PEP?
+  const extendedRoster = roster.map(r => {
+    const user = allUsers.find(u => r.jid.includes(u.user_id));
+    const name = user ? userFullName(user) : r.jid;
+
+    return {
+      ...r,
+      user,
+      name, 
+    };
+  });
+
+  // find my own user from the User API
+  const me = allUsers.find((u) => client.jid.match(u.user_id));
+
   const addContact = () => client.subscribe(newContact);
+
+  const reconnect = () => client.connect();
 
   const acceptSubscription = (id) => {
     client.acceptSubscription(id);
@@ -183,7 +254,6 @@ const App = () => {
     client.disconnect();
     setOnline(false);
     // localStorage.setItem('username', '');
-    setLogs("");
     setRoster([]);
     setContactRequests([]);
 
@@ -194,22 +264,9 @@ const App = () => {
     }
   };
 
-  const log = (msg) => {
-    console.log(msg, typeof msg);
-    const formatted = formatXml(msg.toString(), "  ");
-    setLogs((prev) => `${prev}${formatted}\n\n`);
-  };
-
-  const clearLog = () => setLogs("");
-
   const sendMessage = () => {
     client.sendMessage({ to, body: message, type: 'chat' });
     setMessage("");
-  };
-
-  const invite = async () => {
-    const body = meetingId || await createMeeting();
-    client.sendMessage({ to: invitee, body, type: 'meeting-invite' });
   };
 
   const acceptInvite = (message) => {
@@ -220,25 +277,6 @@ const App = () => {
   const rejectInvite = (message) => {
     setInviteResponses((prev) => ({ ...prev, [message.id]: "reject" }))
     client.sendMessage({ to: message.from, body: message.id, type: 'meeting-invite-reject' });
-  };
-
-  const createMeeting = async () => {
-    const url = `${API_BASE}/api/meeting`;
-    const mstart = parseInt(new Date().getTime() / 1000);
-
-    const formData = new FormData();
-    formData.append("name", "Instant Meeting");
-    formData.append("mstart", mstart.toString());
-    formData.append("duration", "3600");
-    // formData.append("cron", "");
-
-    return fetch(url, {
-      method: "POST",
-      headers: {
-        Authorization: jwt,
-      },
-      body: formData,
-    }).then(res => res.json());
   };
 
   const sendStatus = () => {
@@ -269,11 +307,9 @@ const App = () => {
     setError(null);
   };
 
-  /*
   const changeName = () => {
-    // client.publishVCard({ fullName: newName });
+    client.publishVCard({ fullName: newName });
   };
-*/
 
   const getVCard = async () => {
     try {
@@ -284,6 +320,16 @@ const App = () => {
       console.error("Error getting vcard", e);
     }
   };
+
+  /*
+  const getMUCRooms = async () => {
+    const res = await client.getDiscoItems(MUC_HOSTNAME);
+  }
+
+  const getMUCLightRooms = async () => {
+    const res = await client.getDiscoItems(MUC_LIGHT_HOSTNAME);
+  }
+*/
 
   const uploadFile = (e) => {
     Array.from(e.target.files).forEach(async (f) => {
@@ -305,256 +351,82 @@ const App = () => {
       if (to) { // send notification
         client.sendMessage({ to, body: downloadUrl, type: 'file-upload' });
       }
-
     })
   }
 
-  const joinMUC = (name) => {
-  };
+  if (!online) {
+    return (
+      <div className="App">
+        <Login loading={loading} username={username} onChangeUsername={onChangeUsername} password={password} onChangePassword={onChangePassword} error={error} signIn={signIn} />
+      </div>
+    );
+  }
 
   return (
     <div className="App">
+      <SideBar nav={nav} setNav={setNav} signOut={signOut} client={client} me={me} />
+
+      <Snackbar
+        onClick={reconnect}
+        open={!connected}
+        anchorOrigin={{ horizontal: "center", vertical: "bottom" }}
+        sx={{ cursor: "pointer" }}
+      >
+        <Alert severity="error" sx={{ width: '100%' }}>Disconnected. Click here to reconnect</Alert>
+      </Snackbar>
+
       <IncomingInvites
         accept={acceptInvite}
         reject={rejectInvite}
         invites={incomingInvites}
         responses={inviteResponses} />
 
-      <Box component="section">
-        {!online ? (
-          <>
-            <TextField
-              label="Username"
-              disabled={loading}
-              onChange={onChangeUsername}
-              value={username}
-              error={!!error}
-            />
-            <TextField
-              label="Password"
-              disabled={loading}
-              onKeyDown={(e) => e.key === "Enter" && signIn()}
-              type="password"
-              onChange={onChangePassword}
-              value={password}
-              error={!!error}
-              helperText={error && "Invalid credentials"}
-            />
-            <Button variant="contained" disabled={loading} onClick={signIn}>
-              Sign in
-            </Button>
-          </>
-        ) : (
-          <>
-            <h3>{jid}</h3>
+      <Box sx={{ display: "none" }}>
+        <>
+          <h3>{jid}</h3>
 
-            <TextField
-              size="small"
-              label="Name"
-              onChange={(e) => setNewName(e.target.value)}
-              value={newName}
-              onKeyDown={(e) => e.key === "Enter" && sendStatus()}
-              InputProps={{
-                endAdornment: <Button onClick={sendStatus}>Set</Button>,
-              }}
-            />
+          <TextField size="small" label="Name" onChange={(e) => setNewName(e.target.value)} value={newName} onKeyDown={(e) => e.key === "Enter" && changeName()} InputProps={{ endAdornment: <Button onClick={changeName}>Set</Button> }} />
 
-            <TextField
-              size="small"
-              label="Status"
-              onChange={(e) => setStatus(e.target.value)}
-              value={status}
-              onKeyDown={(e) => e.key === "Enter" && sendStatus()}
-              InputProps={{
-                endAdornment: <Button onClick={sendStatus}>Set</Button>,
-              }}
-            />
+          <TextField size="small" label="Status" onChange={(e) => setStatus(e.target.value)} value={status} onKeyDown={(e) => e.key === "Enter" && sendStatus()} InputProps={{ endAdornment: <Button onClick={sendStatus}>Set</Button> }} />
 
-            <h3>Send Contact Request</h3>
+          <h3>Send Contact Request</h3>
 
-            <TextField
-              size="small"
-              label="To (JID)"
-              onChange={(e) => setNewContact(e.target.value)}
-              value={newContact}
-              onKeyDown={(e) => e.key === "Enter" && addContact()}
-              InputProps={{
-                endAdornment: <Button onClick={addContact}>Add</Button>,
-              }}
-            />
+          <TextField size="small" label="To (JID)" onChange={(e) => setNewContact(e.target.value)} value={newContact} onKeyDown={(e) => e.key === "Enter" && addContact()} InputProps={{ endAdornment: <Button onClick={addContact}>Add</Button> }} />
 
-            {/* <Autocomplete */}
-            {/*   disablePortal */}
-            {/*   freeSolo */}
-            {/*   value={newContact} */}
-            {/*   // inputValue={users.find(u => u.user_id === newContact)?.user_name} */}
-            {/*   inputValue={userDisplayName(users.find(u => u.user_id))} */}
-            {/*   onChange={(_, u) => u && setNewContact(u.id)} */}
-            {/*   options={users.map(u => ({ */}
-            {/*       label: userDisplayName(u), */}
-            {/*       id: u.user_id, */}
-            {/*       // key: u.user_id */}
-            {/*     }))} */}
-            {/*   renderInput={(params) => <TextField {...params} label="User" />} */}
-            {/* /> */}
+          <Button variant="contained" component="label"> Send File <input onChange={uploadFile} type="file" hidden /> </Button>
 
-            {/* New Contact: {newContact} */}
+          <Button variant="contained" onClick={getVCard}>Get Own VCard</Button>
 
-            {/* <Button variant="contained" onClick={addContact}>Add</Button> */}
+          <Divider />
 
-            <h3>Send a Message</h3>
-
-            <TextField
-              size="small"
-              label="To (JID)"
-              onChange={(e) => setTo(e.target.value)}
-              value={to}
-            />
-
-            <TextField
-              size="small"
-              label="Message"
-              onChange={(e) => setMessage(e.target.value)}
-              value={message}
-              onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-              InputProps={{
-                endAdornment: <Button onClick={sendMessage}>Send</Button>,
-              }}
-            />
-
-            <Button variant="contained" component="label">
-              Send File
-              <input onChange={uploadFile} type="file" hidden />
-            </Button>
-
-            <Button variant="contained" onClick={getMessageArchive}>
-              Get Message Archive
-            </Button>
-
-            <h3>Invite to Meeting</h3>
-
-            <TextField
-              size="small"
-              label="To (JID)"
-              onChange={(e) => setInvitee(e.target.value)}
-              value={invitee}
-              onKeyDown={(e) => e.key === "Enter" && invite()}
-            />
-
-            <TextField
-              size="small"
-              label="Meeting ID (leave blank to create instant meeting)"
-              onChange={(e) => setMeetingId(e.target.value)}
-              value={meetingId}
-              onKeyDown={(e) => e.key === "Enter" && invite()}
-              InputProps={{
-                endAdornment: <Button onClick={invite}>Invite</Button>,
-              }}
-            />
-
-            <Divider />
-
-            <Button variant="contained" onClick={getVCard}>
-              Get VCard
-            </Button>
-
-            <Divider />
-
-            <Button variant="contained" onClick={signOut}>
-              Sign out
-            </Button>
-          </>
-        )}
+          <Button variant="contained" onClick={signOut}>Sign out</Button>
+        </>
       </Box>
 
-      {online && (
-        <>
-          <Box component="section" sx={{ width: "20vw" }}>
-            <Roster
-              roster={roster}
+      <Box className="main">
+        {nav === 'contacts'
+          ? <Roster
+              roster={extendedRoster}
               rosterPresence={rosterPresence}
-              rosterNames={rosterNames}
+              allUsers={allUsers}
               contactRequests={contactRequests}
               removeContact={removeContact}
               acceptSubscription={acceptSubscription}
               denySubscription={denySubscription}
+              messages={messages}
+              client={client}
+              API_BASE={API_BASE}
+              MUC_LIGHT_HOSTNAME={MUC_LIGHT_HOSTNAME}
+              jwt={jwt}
+              me={me}
             />
-          </Box>
-
-          <Box component="section" sx={{ width: "40vw" }}>
-            <Logs logs={logs} clearLog={clearLog} />
-          </Box>
-        </>
-      )}
+          : nav === 'messages'
+            ? <div>Messages</div>
+            : null}
+      </Box>
     </div>
   );
 };
-
-const Roster = ({
-  roster,
-  rosterPresence,
-  rosterNames,
-  contactRequests,
-  removeContact,
-  acceptSubscription,
-  denySubscription,
-}) => (
-  <>
-    <h3>Roster</h3>
-    <Divider />
-    <ul>
-      {roster.map((u) => (
-        <li key={u.jid}>
-            {rosterNames[u.jid]} ({u.jid}) ({u.subscription}) [{rosterPresence[u.jid]}])
-          <Button color="error" onClick={() => removeContact(u.jid)}>
-            Remove
-          </Button>
-        </li>
-      ))}
-    </ul>
-
-    {contactRequests && (
-      <>
-        <h3>Contact Requests</h3>
-        <Divider />
-        <ul>
-          {contactRequests.map((u) => (
-            <li key={u}>
-              {u}
-              <Button onClick={() => acceptSubscription(u)}>Accept</Button>
-              <Button onClick={() => denySubscription(u)}>Deny</Button>
-            </li>
-          ))}
-        </ul>
-      </>
-    )}
-  </>
-);
-
-const Logs = ({ logs, clearLog }) => (
-  <>
-    <h3>Log</h3>
-    <Divider />
-    <Paper
-      label="Log"
-      className="logs"
-      sx={{
-        textAlign: "left",
-        width: "42vw",
-        height: "70vh",
-        whiteSpace: "pre-wrap",
-        overflow: "auto",
-      }}
-    >
-      <ScrollToBottom style={{ width: "500px", height: "500px" }}>
-        {logs}
-      </ScrollToBottom>
-    </Paper>
-    <Button variant="contained" onClick={clearLog}>
-      Clear Logs
-    </Button>
-  </>
-);
 
 const IncomingInvites = ({ accept, reject, invites, responses }) =>
   invites.filter((m) => !responses[m.id]).map((m) => (
@@ -597,6 +469,32 @@ const getAllUsers = async (jwt) => {
     : [];
 }
 
-const userDisplayName = (u) => `${u.user_firstname} ${u.user_lastname} (${u.user_email})`;
+function userFullName(user) {
+  return user?.user_displayname
+    ? user.user_displayname
+    : user?.user_firstname
+      ? `${user.user_firstname} ${user.user_lastname}`
+      : "[No Name]";
+}
+
+// const userDisplayName = (u) => `${userFullName(u)} (${u.user_email})`;
+
+/*
+// TODO: CORS
+async function getAllMessages(uuid, jwt) {
+  try {
+    const res = await fetch(`https://${HOSTNAME}/api/messages`, {
+      headers: {
+        Authorization: `Basic ${btoa(`${uuid}:${jwt}`)}`,
+      },
+    });
+    const json = await res.json();
+    console.log(json);
+    return json;
+  } catch(e) {
+    console.log('error fetching messages', e);
+  }
+}
+*/
 
 export default App;
