@@ -1,4 +1,5 @@
 import { useState } from "react";
+
 import {
   Box,
   Button,
@@ -22,6 +23,7 @@ import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import AddIcon from '@mui/icons-material/Add';
+import GroupsIcon from '@mui/icons-material/Groups';
 
 import Message from './message';
 
@@ -85,15 +87,12 @@ const AddContactPrompt = ({ open, close, add, allUsers }) => {
   );
 };
 
+// TODO use teh name property
 const userDisplayName = (u) => `${u.user_firstname} ${u.user_lastname} (${u.user_email})`;
 
 const Roster = ({
   roster,
-  rosterPresence,
-  contactRequests,
-  removeContact,
-  acceptSubscription,
-  denySubscription,
+  // presence,
   messages,
   client,
   allUsers,
@@ -123,17 +122,22 @@ const Roster = ({
     client.subscribe(jid);
   }
 
-  // TODO: this will use the Room API soon
-  const addRoom = (name) => {
-    // TODO: Add the room
+  // TODO: this will use the Room API in the future
+  const addRoom = async (name) => {
     const uuid = crypto.randomUUID();
     const jid = `${uuid}@${MUC_LIGHT_HOSTNAME}`;
-    client.joinRoom(jid, me.name);
+    const res = await client.joinRoom(jid);
+    console.log("created room!", res);
+    client.configureRoom(jid, { fields: [ { name: 'roomname', value: name } ] });
   }
 
   // filter by search
   const filteredRoster = roster.filter(r =>
     r.name?.toLowerCase().includes(search.toLowerCase()) || r.jid?.includes(search));
+
+  const chatMessages = subNav && messages[subNav.jid]
+    ? messages[subNav.jid]
+    : [];
 
   return (
     <>
@@ -154,7 +158,6 @@ const Roster = ({
         <Box sx={{ px: 2 }}>
           <Stack direction="row" sx={{ alignItems: "center" }}>
             <h2>Contacts</h2>
-
 
             <IconButton sx={{ ml: "auto" }} onClick={openAddMenu}>
               <AddIcon fontSize="inherit" />
@@ -189,7 +192,11 @@ const Roster = ({
             <ListItem key={u.jid} disablePadding>
               <ListItemButton onClick={() => setSubNav(u)}>
                 <ListItemAvatar>
-                  <Avatar>K</Avatar>
+                  <Avatar>
+                    {u.isRoom
+                      ? <GroupsIcon />
+                      : initials(u)}
+                  </Avatar>
                 </ListItemAvatar>
 
                 <ListItemText
@@ -200,28 +207,21 @@ const Roster = ({
                   title={u.jid}
                 >
                 </ListItemText>
-                {/* <Button color="error" onClick={() => removeContact(u.jid)}>Remove</Button> */}
               </ListItemButton>
             </ListItem>
           ))}
-
-          {/*
-          {contactRequests.map((u) => (
-            <ListItem key={u}>
-              {u}
-              <Button onClick={() => acceptSubscription(u)}>Accept</Button>
-              <Button onClick={() => denySubscription(u)}>Deny</Button>
-            </ListItem>
-          ))}
-          */}
         </List>
       </Paper>
 
       <Paper className="right-section">
-        {subNav && <Message client={client} user={subNav} messages={messages} API_BASE={API_BASE} jwt={jwt} />}
+        {subNav && <Message allUsers={allUsers} client={client} user={subNav} messages={chatMessages} API_BASE={API_BASE} jwt={jwt} />}
       </Paper>
     </>
   );
 };
+
+function initials(u) {
+  return u.name?.split(" ")?.slice(0, 2)?.map(n => n.substr(0, 1));
+}
 
 export default Roster;

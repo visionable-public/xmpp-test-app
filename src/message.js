@@ -4,23 +4,36 @@ import {
   Stack,
   TextField,
   IconButton,
+  Autocomplete,
 } from "@mui/material";
 import { useState, useEffect, useRef } from "react";
 
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogTitle from '@mui/material/DialogTitle';
+import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from "@mui/icons-material/Delete";
 import VideoCameraFrontIcon from '@mui/icons-material/VideoCameraFront';
 
 import { blue } from "@mui/material/colors";
 
-const Message = ({ client, user, messages, API_BASE, jwt }) => {
+const Message = ({ client, user, messages, API_BASE, jwt, allUsers }) => {
   const [message, setMessage] = useState("");
+  const [showAddUserToRoom, setShowAddUserToRoom] = useState(false);
   const scrollRef = useRef(null);
 
   const filteredMessages = messages.filter(m => m.from?.includes(user.jid) || m.to?.includes(user.jid));
 
   const removeContact = async () => {
-    await client.removeRosterItem(user.jid);
-    await client.unsubscribe(user.jid);
+    if (user.isRoom) {
+      // TODO: bare jid
+      await client.setRoomAffiliation(user.jid, client.jid, "none");
+      await client.leaveRoom(user.jid);
+    } else {
+      await client.removeRosterItem(user.jid);
+      await client.unsubscribe(user.jid);
+    }
   };
 
   const sendMessage = () => {
@@ -28,7 +41,8 @@ const Message = ({ client, user, messages, API_BASE, jwt }) => {
       return;
     }
 
-    client.sendMessage({ to: user.jid, body: message, type: 'chat' });
+    const type = user.isRoom ? 'groupchat' : 'chat';
+    client.sendMessage({ to: user.jid, body: message, type });
     setMessage("");
   };
 
@@ -46,12 +60,26 @@ const Message = ({ client, user, messages, API_BASE, jwt }) => {
 
   return (
     <Stack sx={{ flexGrow: 1 }}>
+      <AddUserToRoomPrompt
+        client={client}
+        room={user}
+        open={showAddUserToRoom}
+        close={() => setShowAddUserToRoom(false) }
+        allUsers={allUsers}
+      />
+
       <Stack direction="row" sx={{ px: 2, background: "white", alignItems: "center" }}>
         <h2>{user.name}</h2>
 
         <IconButton onClick={removeContact}>
           <DeleteIcon fontSize="inherit" />
         </IconButton>
+
+        {user.isRoom &&
+          <IconButton onClick={() => setShowAddUserToRoom(true)}>
+            <AddIcon fontSize="inherit" />
+          </IconButton>
+      }
 
         <IconButton sx={{ ml: "auto" }} onClick={invite}>
           <VideoCameraFrontIcon fontSize="inherit" />
@@ -116,5 +144,38 @@ async function createMeeting(API_BASE, jwt) {
     body: formData,
   }).then(res => res.json());
 };
+
+const AddUserToRoomPrompt = ({ open, close, allUsers, client, room }) => {
+  const [user, setUser] = useState("");
+
+  const onAdd = () => {
+    const jid = `${user}@saas-msg.visionable.one`; // TODO: use constant
+    client.setRoomAffiliation(room.jid, jid, "member")
+    close();
+  }
+
+  return (
+    <Dialog open={open} onClose={close}>
+      <DialogTitle>Add User to Room</DialogTitle>
+
+      <DialogContent>
+        <Autocomplete
+          sx={{ width: 400, my: 1 }}
+          onChange={(_, u) => u && setUser(u.id)}
+          options={allUsers.map(u => ({
+            label: `${u.name} (${u.user_email})`,
+            id: u.user_id,
+          }))}
+          renderInput={(params) => <TextField {...params} label="User" />}
+        />
+      </DialogContent>
+
+      <DialogActions>
+        <Button onClick={close}>Cancel</Button>
+        <Button onClick={onAdd}>Add</Button>
+      </DialogActions>
+    </Dialog>
+  );
+}
 
 export default Message;

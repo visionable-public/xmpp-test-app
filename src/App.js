@@ -1,17 +1,15 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, createContext, useContext } from "react";
 import * as XMPP from "stanza";
 import Amplify, { Auth, Hub } from "aws-amplify";
 import {
   Box,
   Button,
   TextField,
-  Paper,
   Divider,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
-  // Autocomplete,
   Snackbar,
   Alert,
 } from "@mui/material";
@@ -32,7 +30,7 @@ const HOSTNAME = "saas-msg.visionable.one";
 const PROTOCOL = "wss";
 const PORT = "5443";
 const ENDPOINT = "ws-xmpp";
-const MUC_HOSTNAME = `muc.${HOSTNAME}`;
+// const MUC_HOSTNAME = `muc.${HOSTNAME}`;
 const MUC_LIGHT_HOSTNAME = `muclight.${HOSTNAME}`;
 
 Amplify.configure({
@@ -62,23 +60,21 @@ const App = () => {
   const [password, setPassword] = useState("Green12345!");
   const [jid, setJid] = useState("");
   const [jwt, setJwt] = useState("");
-  const [message, setMessage] = useState("");
-  const [to, setTo] = useState("");
   const [online, setOnline] = useState(false);
   const [status, setStatus] = useState("");
   const [roster, setRoster] = useState([]);
-  const [rosterPresence, setRosterPresence] = useState({});
+  const [presence, setPresence] = useState({});
   // const [rosterNames, setRosterNames] = useState({});
-  const [newContact, setNewContact] = useState("");
   const [incomingInvites, setIncomingInvites] = useState([]);
   const [inviteResponses, setInviteResponses] = useState({});
   const [newName, setNewName] = useState("");
-  const [contactRequests, setContactRequests] = useState([]);
+  // const [contactRequests, setContactRequests] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [allUsers, setAllUsers] = useState([]);
   const [nav, setNav] = useState("contacts");
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState({}); // { user: [message] }
+  const [roomMessages, setRoomMessages] = useState({}); // { room: [message] }
   const [connected, setConnected] = useState(false);
 
   const signIn = async () => {
@@ -106,7 +102,12 @@ const App = () => {
       setClient(xmpp);
       setConnected(true);
 
-      setAllUsers(await getAllUsers(jwt));
+      const cognitoUsers = await getAllUsers(jwt);
+      const extendedUsers = cognitoUsers.map((u) => ({
+        ...u,
+        name: userFullName(u),
+      }));
+      setAllUsers(extendedUsers);
 
       window.client = xmpp;
 
@@ -119,18 +120,31 @@ const App = () => {
         const roster = (await xmpp.getRoster()).items;
         setRoster(roster);
 
-        // get all messages on start
-        // getAllMessages(uuid, jwt);
+        setMessages({});
+        setRoomMessages({});
+        /*
         roster.forEach((r) => {
           xmpp.searchHistory({ with: r.jid });
         });
+*/
       });
 
       xmpp.on("message", (message) => {
         if (message.type === 'meeting-invite') {
           setIncomingInvites((prev) => [...prev, message]);
         } else if (message.type === "chat") {
-          setMessages((prev) => [...prev, message]);
+          const [from] = message.from.split("/");
+          setMessages((prev) => ({
+            ...prev,
+            [from]: [
+              ...(prev[from] || []),
+              message,
+            ],
+          }));
+        } else if (message.type === "groupchat") {
+          const [room, user] = message.from.split("/");
+          console.log("GOT A GROUPCHAT", room, user);
+          // setRoomMessages((prev) => []);
         }
       });
 
@@ -138,14 +152,35 @@ const App = () => {
         if (message.type === 'meeting-invite') {
           // TODO: display something in the chat
         } else if (message.type === "chat") {
-          setMessages((prev) => [...prev, message]);
+          const [to] = message.to.split("/");
+          setMessages((prev) => ({
+            ...prev,
+            [to]: [
+              ...(prev[to] || []),
+              message,
+            ],
+          }));
+        } else if (message.type === "groupchat") {
+          // TODO: just seems to work??
         }
       });
 
       xmpp.on("mam:item", (mam) => {
+        // TODO groupchat ???
         const message = mam.archive?.item?.message;
-        console.log("MAM MESSAGE", message);
-        setMessages((prev) => [...prev, message]);
+        const { to, from } = message;
+        console.log("MAM MESSAGE. to, from", message, to, from);
+        return;
+        const fullUser = xmpp.jid.includes(to) ? from : to;
+        console.log("MAM FOR USER. my jid: ", xmpp.jid, fullUser);
+        const [user] = fullUser.split("/");
+        setMessages((prev) => ({
+          ...prev,
+          [user]: [
+            ...(prev[user] || []),
+            message,
+          ],
+        }));
       });
 
       // if someone subscribes to us, automatically subscribe back
@@ -154,38 +189,36 @@ const App = () => {
         xmpp.subscribe(data.from);
       });
 
+      // if someone adds you to a room, auto accept it
+      xmpp.on("muc:invite", (data) => {
+        client.joinRoom(data.room);
+      });
+
       xmpp.on("roster:update", async () =>
         setRoster((await xmpp.getRoster()).items)
       );
 
+      // created or added to a room
+      xmpp.on("muc:available", async () =>
+        setRoster((await xmpp.getRoster()).items)
+      );
+
+      // no longer in a room
+      xmpp.on("muc:unavailable", async () =>
+        setRoster((await xmpp.getRoster()).items)
+      );
+
       xmpp.on("presence", (data) => {
-        const user = data.from.replace(/\/.*$/, "");
-        const type = data.type;
-
-        if (type === 'unavailable') {
-          setRosterPresence((prev) => ({ ...prev, [user]: type }));
-        } else if (data.status) {
-          const statusObject = JSON.parse(data.status);
-          /*
-          const { handle, status } = statusObject;
-          console.log('handle', handle);
-          // TODO setHandle for user
-
-          if (user === jid) {
-            setStatus(status || '');
-            setNewName(handle || '');
-          } else {
-            setRosterPresence((prev) => ({ ...prev, [user]: status }));
-            setRosterNames((prev) => ({ ...prev, [user]: handle }));
-          }
-*/
-        }
+        // const type = data.type;
+        setPresence((prev) => ({ ...prev, [data.from]: data }))
       });
 
+      /*
       xmpp.on("available", (data) => {
         const jid = data.from.replace(/\/.*$/, "");
-        setRosterPresence((prev) => ({ ...prev, [jid]: 'Available' }));
+        setPresence((prev) => ({ ...prev, [jid]: 'Available' }));
       });
+*/
 
       xmpp.on("*", async (type, data) => {
         console.log(type, data);
@@ -219,23 +252,30 @@ const App = () => {
     });
   }, []);
 
+  console.log('new presence list', presence);
+
   // extend the roster with info from the User API
   // TODO: stop doing this and figure out how to use XMPP. PEP?
   const extendedRoster = roster.map(r => {
     const user = allUsers.find(u => r.jid.includes(u.user_id));
-    const name = user ? userFullName(user) : r.jid;
+    const name = r.name // if the roster item has a name
+      ? r.name // use that
+      : user // otherwise, if there's a corresponding user from the User API
+        ? userFullName(user) // get the name of that
+        : r.jid;// otherwise, just show their JID
 
     return {
       ...r,
       user,
       name, 
+      isRoom: r.groups?.[0]?.includes("muc"),
     };
   });
 
   // find my own user from the User API
   const me = allUsers.find((u) => client.jid.match(u.user_id));
 
-  const addContact = () => client.subscribe(newContact);
+  // const addContact = () => client.subscribe(newContact);
 
   const reconnect = () => client.connect();
 
@@ -253,20 +293,18 @@ const App = () => {
   const signOut = async () => {
     client.disconnect();
     setOnline(false);
-    // localStorage.setItem('username', '');
+    setConnected(false);
     setRoster([]);
-    setContactRequests([]);
+    setPresence({});
+    // setContactRequests([]);
+    setMessages({});
+    setRoomMessages({});
 
     try {
       await Auth.signOut();
     } catch (error) {
       console.log("error signing out: ", error);
     }
-  };
-
-  const sendMessage = () => {
-    client.sendMessage({ to, body: message, type: 'chat' });
-    setMessage("");
   };
 
   const acceptInvite = (message) => {
@@ -280,21 +318,7 @@ const App = () => {
   };
 
   const sendStatus = () => {
-    const richPresence = JSON.stringify({
-      status: status,
-      handle: newName,
-    });
-    client.sendPresence({ status: richPresence });
-    // client.sendPresence({ status });
-  };
-
-  const getMessageArchive = async () => {
-    try {
-      const history = await client.searchHistory({ with: to });
-      console.log('got history', history);
-    } catch (e) {
-      console.log("Error getting history", e);
-    }
+    client.sendPresence({ status });
   };
 
   const onChangeUsername = (e) => {
@@ -331,6 +355,7 @@ const App = () => {
   }
 */
 
+  /*
   const uploadFile = (e) => {
     Array.from(e.target.files).forEach(async (f) => {
       const { name, size, type: mediaType } = f; // TODO files with spaces in name fail
@@ -353,6 +378,7 @@ const App = () => {
       }
     })
   }
+*/
 
   if (!online) {
     return (
@@ -391,9 +417,7 @@ const App = () => {
 
           <h3>Send Contact Request</h3>
 
-          <TextField size="small" label="To (JID)" onChange={(e) => setNewContact(e.target.value)} value={newContact} onKeyDown={(e) => e.key === "Enter" && addContact()} InputProps={{ endAdornment: <Button onClick={addContact}>Add</Button> }} />
-
-          <Button variant="contained" component="label"> Send File <input onChange={uploadFile} type="file" hidden /> </Button>
+          {/* <Button variant="contained" component="label"> Send File <input onChange={uploadFile} type="file" hidden /> </Button> */}
 
           <Button variant="contained" onClick={getVCard}>Get Own VCard</Button>
 
@@ -407,12 +431,8 @@ const App = () => {
         {nav === 'contacts'
           ? <Roster
               roster={extendedRoster}
-              rosterPresence={rosterPresence}
+              // presence={presence}
               allUsers={allUsers}
-              contactRequests={contactRequests}
-              removeContact={removeContact}
-              acceptSubscription={acceptSubscription}
-              denySubscription={denySubscription}
               messages={messages}
               client={client}
               API_BASE={API_BASE}
@@ -470,11 +490,13 @@ const getAllUsers = async (jwt) => {
 }
 
 function userFullName(user) {
-  return user?.user_displayname
-    ? user.user_displayname
-    : user?.user_firstname
-      ? `${user.user_firstname} ${user.user_lastname}`
-      : "[No Name]";
+  return user?.name
+  ? user.name
+    : user?.user_displayname
+      ? user.user_displayname
+      : user?.user_firstname
+        ? `${user.user_firstname} ${user.user_lastname}`
+        : "[No Name]";
 }
 
 // const userDisplayName = (u) => `${userFullName(u)} (${u.user_email})`;
