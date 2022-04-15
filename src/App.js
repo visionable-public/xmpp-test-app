@@ -4,8 +4,6 @@ import Amplify, { Auth, Hub } from "aws-amplify";
 import {
   Box,
   Button,
-  TextField,
-  Divider,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -30,7 +28,6 @@ const HOSTNAME = "saas-msg.visionable.one";
 const PROTOCOL = "wss";
 const PORT = "5443";
 const ENDPOINT = "ws-xmpp";
-// const MUC_HOSTNAME = `muc.${HOSTNAME}`;
 const MUC_LIGHT_HOSTNAME = `muclight.${HOSTNAME}`;
 
 Amplify.configure({
@@ -61,14 +58,10 @@ const App = () => {
   const [jid, setJid] = useState("");
   const [jwt, setJwt] = useState("");
   const [online, setOnline] = useState(false);
-  // const [status, setStatus] = useState("");
   const [roster, setRoster] = useState([]);
   const [presence, setPresence] = useState({});
-  // const [rosterNames, setRosterNames] = useState({});
   const [incomingInvites, setIncomingInvites] = useState([]);
   const [inviteResponses, setInviteResponses] = useState({});
-  // const [newName, setNewName] = useState("");
-  // const [contactRequests, setContactRequests] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [allUsers, setAllUsers] = useState([]);
@@ -85,7 +78,6 @@ const App = () => {
     try {
       const { username: uuid, signInUserSession: session } = await Auth.signIn(username, password);
       window.Auth = Auth;
-      console.log(session);
       const jwt = session.idToken.jwtToken;
       setJwt(jwt);
       const jid = `${uuid}@${HOSTNAME}`;
@@ -115,8 +107,8 @@ const App = () => {
         setMessages({});
         setRoomMessages({});
 
+        // Get the last 50 messages for each roster item
         roster.forEach((r) => {
-          // xmpp.searchHistory({ with: r.jid });
           xmpp.searchHistory({ with: r.jid, paging: { before: "" }});
         });
       });
@@ -166,12 +158,10 @@ const App = () => {
       });
 
       xmpp.on("mam:item", (mam) => {
-        // TODO groupchat ???
+        // TODO groupchat
         const message = mam.archive?.item?.message;
         const { to, from } = message;
-        // console.log("MAM MESSAGE. to, from", message, to, from);
         const fullUser = to.includes(xmpp.config.jid) ? from : to;
-        // console.log("MAM USER KEY:" + fullUser);
         const [user] = fullUser.split("/");
         setMessages((prev) => ({
           ...prev,
@@ -182,20 +172,28 @@ const App = () => {
         }));
       });
 
-      // if someone subscribes to us, automatically subscribe back
-      xmpp.on("subscribe", (data) => {
-        console.log("on subscribe", data);
-        xmpp.subscribe(data.from);
+      xmpp.on("subscribe", (data) => { // if someone subscribes to us..
+        xmpp.acceptSubscription(data.from); // auto accept
+        xmpp.subscribe(data.from); // TODO: and auto add them to ours?
+      });
+
+      xmpp.on("unsubscribe", (data) => { // if someone removes me from their roster
+        xmpp.unsubscribe(data.from); // remove them from ours
+      });
+
+      xmpp.on("roster:update", async (data) => { // roster item change
+        data.roster.times.forEach((r) => {
+          setMessages((prev) => ({ ...prev, [r.jid]: [] })); // delete any messages from them
+          xmpp.searchHistory({ with: r.jid, paging: { before: "" }}); // and replace
+        });
+
+        setRoster((await xmpp.getRoster()).items)
       });
 
       // if someone adds you to a room, auto accept it
       xmpp.on("muc:invite", (data) => {
         client.joinRoom(data.room);
       });
-
-      xmpp.on("roster:update", async () =>
-        setRoster((await xmpp.getRoster()).items)
-      );
 
       // created or added to a room
       xmpp.on("muc:available", async () =>
@@ -208,7 +206,6 @@ const App = () => {
       );
 
       xmpp.on("presence", (data) => {
-        // const type = data.type;
         setPresence((prev) => ({ ...prev, [data.from]: data }))
       });
 
@@ -253,7 +250,7 @@ const App = () => {
     });
   }, []);
 
-  // console.log('new presence list', presence);
+  console.log('new presence list', presence);
   // console.log('messages', messages);
 
   // extend the roster with info from the User API, presence, etc.
@@ -279,30 +276,17 @@ const App = () => {
     };
   });
 
+  // const messageUsers = messages.reduce(())
+
   console.log("extended roster", extendedRoster);
 
   // find my own user from the User API
   const me = allUsers.find((u) => client.jid.match(u.user_id));
 
-  // const addContact = () => client.subscribe(newContact);
-
   const reconnect = async () => {
     client.config.credentials.password = (await Auth.currentSession()).idToken.jwtToken;
     client.connect();
   };
-
-  /*
-  const acceptSubscription = (id) => {
-    client.acceptSubscription(id);
-    client.subscribe(id);
-  };
-  const denySubscription = (id) => client.denySubscription(id);
-
-  const removeContact = async (jid) => {
-    await client.removeRosterItem(jid);
-    await client.unsubscribe(jid);
-  };
-*/
 
   const signOut = async () => {
     client.disconnect();
@@ -310,7 +294,6 @@ const App = () => {
     setConnected(false);
     setRoster([]);
     setPresence({});
-    // setContactRequests([]);
     setMessages({});
     setRoomMessages({});
 
@@ -330,12 +313,6 @@ const App = () => {
     setInviteResponses((prev) => ({ ...prev, [message.id]: "reject" }))
     client.sendMessage({ to: message.from, body: message.id, type: 'meeting-invite-reject' });
   };
-
-  /*
-  const sendStatus = () => {
-    client.sendPresence({ status });
-  };
-*/
 
   const onChangeUsername = (e) => {
     setUsername(e.target.value);
@@ -361,19 +338,11 @@ const App = () => {
       console.error("Error getting vcard", e);
     }
   };
-*/
-
-  /*
-  const getMUCRooms = async () => {
-    const res = await client.getDiscoItems(MUC_HOSTNAME);
-  }
 
   const getMUCLightRooms = async () => {
     const res = await client.getDiscoItems(MUC_LIGHT_HOSTNAME);
   }
-*/
 
-  /*
   const uploadFile = (e) => {
     Array.from(e.target.files).forEach(async (f) => {
       const { name, size, type: mediaType } = f; // TODO files with spaces in name fail

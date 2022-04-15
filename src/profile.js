@@ -2,14 +2,15 @@ import { useState } from 'react';
 import Avatar from '@mui/material/Avatar';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
-import ListItemIcon from '@mui/material/ListItemIcon';
 import Divider from '@mui/material/Divider';
 import IconButton from '@mui/material/IconButton';
-import Tooltip from '@mui/material/Tooltip';
 import ListItem from '@mui/material/ListItem';
-import PersonAdd from '@mui/icons-material/PersonAdd';
+import ListItemIcon from '@mui/material/ListItemIcon';
+import ListItemText from '@mui/material/ListItemText';
+
 import Settings from '@mui/icons-material/Settings';
 import Logout from '@mui/icons-material/Logout';
+import Circle from '@mui/icons-material/Circle';
 
 const Profile = ({ client, me }) => {
   const [anchorEl, setAnchorEl] = useState(null);
@@ -23,12 +24,47 @@ const Profile = ({ client, me }) => {
     setAnchorEl(null);
   };
 
+  const setStatus = (status) => {
+    client.sendPresence({ status });
+  };
+
+  const statusList = [
+    {
+      key: "available",
+      color: "#53b397",
+      label: "Available",
+      icon: Circle,
+    },
+    {
+      key: "in-meeting",
+      color: "#ea3323",
+      label: "In a meeting",
+      icon: Circle,
+    },
+    {
+      key: "away",
+      color: "#f0a73e",
+      label: "Away",
+      icon: Circle,
+    },
+  ]
+
   return (
     <>
       <ListItem disablePadding>
-        <IconButton onClick={handleClick} sx={{ ml: 0.5 }}>
-          <Avatar sx={{ width: 32, height: 32 }}>M</Avatar>
-        </IconButton>
+        <ListItemIcon>
+          <IconButton onClick={handleClick} sx={{ ml: 0.5 }}>
+            <Avatar sx={{ width: 32, height: 32 }}>M</Avatar>
+          </IconButton>
+        </ListItemIcon>
+
+        <ListItemText
+          primary={me.name}
+          primaryTypographyProps={{ color: "white", textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}
+          secondary={me.user_email}
+          secondaryTypographyProps={{ color: "white", textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}
+          title={client.config.jid}
+        />
       </ListItem>
 
       <Menu
@@ -69,16 +105,21 @@ const Profile = ({ client, me }) => {
         <MenuItem>
           <Avatar /> Profile
         </MenuItem>
-        <MenuItem>
-          <Avatar /> My account
-        </MenuItem>
+
         <Divider />
-        <MenuItem>
-          <ListItemIcon>
-            <PersonAdd fontSize="small" />
-          </ListItemIcon>
-          Add another account
-        </MenuItem>
+
+        {statusList.map((s) => (
+          <MenuItem key={s.key} onClick={() => setStatus(s.key)}>
+            <ListItemIcon>
+              <Circle fontSize="small" sx={{ color: s.color }} />
+            </ListItemIcon>
+
+            <ListItemText primary={s.label} />
+          </MenuItem>
+        ))}
+
+        <Divider />
+
         <MenuItem>
           <ListItemIcon>
             <Settings fontSize="small" />

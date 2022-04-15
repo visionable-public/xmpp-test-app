@@ -206,8 +206,7 @@ const Roster = ({
                   secondary={u.user?.user_email}
                   secondaryTypographyProps={{ textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}
                   title={u.jid}
-                >
-                </ListItemText>
+                />
               </ListItemButton>
             </ListItem>
           ))}
