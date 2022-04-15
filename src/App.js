@@ -61,13 +61,13 @@ const App = () => {
   const [jid, setJid] = useState("");
   const [jwt, setJwt] = useState("");
   const [online, setOnline] = useState(false);
-  const [status, setStatus] = useState("");
+  // const [status, setStatus] = useState("");
   const [roster, setRoster] = useState([]);
   const [presence, setPresence] = useState({});
   // const [rosterNames, setRosterNames] = useState({});
   const [incomingInvites, setIncomingInvites] = useState([]);
   const [inviteResponses, setInviteResponses] = useState({});
-  const [newName, setNewName] = useState("");
+  // const [newName, setNewName] = useState("");
   // const [contactRequests, setContactRequests] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -83,10 +83,7 @@ const App = () => {
     localStorage.setItem("username", username);
 
     try {
-      const { username: uuid, signInUserSession: session } = await Auth.signIn(
-        username,
-        password
-      );
+      const { username: uuid, signInUserSession: session } = await Auth.signIn(username, password);
       window.Auth = Auth;
       console.log(session);
       const jwt = session.idToken.jwtToken;
@@ -97,16 +94,12 @@ const App = () => {
 
       console.log(jid, jwt)
 
-      setLoading(false);
-
       setClient(xmpp);
+      setLoading(false);
       setConnected(true);
 
       const cognitoUsers = await getAllUsers(jwt);
-      const extendedUsers = cognitoUsers.map((u) => ({
-        ...u,
-        name: userFullName(u),
-      }));
+      const extendedUsers = cognitoUsers.map((u) => ({ ...u, name: userFullName(u) }));
       setAllUsers(extendedUsers);
 
       window.client = xmpp;
@@ -119,7 +112,6 @@ const App = () => {
 
         const roster = (await xmpp.getRoster()).items;
         setRoster(roster);
-
         setMessages({});
         setRoomMessages({});
         /*
@@ -129,6 +121,7 @@ const App = () => {
 */
       });
 
+      // TODO: inject the messages with the names
       xmpp.on("message", (message) => {
         if (message.type === 'meeting-invite') {
           setIncomingInvites((prev) => [...prev, message]);
@@ -142,9 +135,16 @@ const App = () => {
             ],
           }));
         } else if (message.type === "groupchat") {
+          // TODO: DRY up this code, same as regular chat?
           const [room, user] = message.from.split("/");
           console.log("GOT A GROUPCHAT", room, user);
-          // setRoomMessages((prev) => []);
+          setMessages((prev) => ({
+            ...prev,
+            [room]: [
+              ...(prev[room] || []),
+              message,
+            ],
+          }));
         }
       });
 
@@ -244,18 +244,20 @@ const App = () => {
 
   // TODO: re-authenticate when our JWT refreshes
   useEffect(() => {
-    Hub.listen('auth', (data) => {
-      console.log("Hub event", data);
+    Hub.listen('auth', async (data) => {
       if (data.payload.event === "tokenRefresh") {
         console.log("token refreshed", data);
+        client.config.credentials.password = (await Auth.currentSession()).idToken.jwtToken;
+
+        client.connect();
       }
     });
   }, []);
 
-  console.log('new presence list', presence);
+  // console.log('new presence list', presence);
+  // console.log('messages', messages);
 
-  // extend the roster with info from the User API
-  // TODO: stop doing this and figure out how to use XMPP. PEP?
+  // extend the roster with info from the User API, presence, etc.
   const extendedRoster = roster.map(r => {
     const user = allUsers.find(u => r.jid.includes(u.user_id));
     const name = r.name // if the roster item has a name
@@ -264,13 +266,21 @@ const App = () => {
         ? userFullName(user) // get the name of that
         : r.jid;// otherwise, just show their JID
 
+    // grab all of the resources that we've been given presence for this user
+    const resources = Object.values(presence)
+      .filter((p) => p.from.includes(r.jid))
+      .map((u) => u.from.split("/")?.[1]);
+
     return {
       ...r,
       user,
       name, 
-      isRoom: r.groups?.[0]?.includes("muc"),
+      resources,
+      isRoom: !!r.groups?.[0]?.includes("muc"),
     };
   });
+
+  console.log("extended roster", extendedRoster);
 
   // find my own user from the User API
   const me = allUsers.find((u) => client.jid.match(u.user_id));
@@ -279,6 +289,7 @@ const App = () => {
 
   const reconnect = () => client.connect();
 
+  /*
   const acceptSubscription = (id) => {
     client.acceptSubscription(id);
     client.subscribe(id);
@@ -289,6 +300,7 @@ const App = () => {
     await client.removeRosterItem(jid);
     await client.unsubscribe(jid);
   };
+*/
 
   const signOut = async () => {
     client.disconnect();
@@ -317,9 +329,11 @@ const App = () => {
     client.sendMessage({ to: message.from, body: message.id, type: 'meeting-invite-reject' });
   };
 
+  /*
   const sendStatus = () => {
     client.sendPresence({ status });
   };
+*/
 
   const onChangeUsername = (e) => {
     setUsername(e.target.value);
@@ -331,6 +345,7 @@ const App = () => {
     setError(null);
   };
 
+  /*
   const changeName = () => {
     client.publishVCard({ fullName: newName });
   };
@@ -344,6 +359,7 @@ const App = () => {
       console.error("Error getting vcard", e);
     }
   };
+*/
 
   /*
   const getMUCRooms = async () => {
@@ -407,26 +423,6 @@ const App = () => {
         invites={incomingInvites}
         responses={inviteResponses} />
 
-      <Box sx={{ display: "none" }}>
-        <>
-          <h3>{jid}</h3>
-
-          <TextField size="small" label="Name" onChange={(e) => setNewName(e.target.value)} value={newName} onKeyDown={(e) => e.key === "Enter" && changeName()} InputProps={{ endAdornment: <Button onClick={changeName}>Set</Button> }} />
-
-          <TextField size="small" label="Status" onChange={(e) => setStatus(e.target.value)} value={status} onKeyDown={(e) => e.key === "Enter" && sendStatus()} InputProps={{ endAdornment: <Button onClick={sendStatus}>Set</Button> }} />
-
-          <h3>Send Contact Request</h3>
-
-          {/* <Button variant="contained" component="label"> Send File <input onChange={uploadFile} type="file" hidden /> </Button> */}
-
-          <Button variant="contained" onClick={getVCard}>Get Own VCard</Button>
-
-          <Divider />
-
-          <Button variant="contained" onClick={signOut}>Sign out</Button>
-        </>
-      </Box>
-
       <Box className="main">
         {nav === 'contacts'
           ? <Roster
@@ -434,6 +430,7 @@ const App = () => {
               // presence={presence}
               allUsers={allUsers}
               messages={messages}
+              roomMessages={roomMessages}
               client={client}
               API_BASE={API_BASE}
               MUC_LIGHT_HOSTNAME={MUC_LIGHT_HOSTNAME}
@@ -464,29 +461,9 @@ const IncomingInvites = ({ accept, reject, invites, responses }) =>
     </Dialog>
   ));
 
-function formatXml(xml, tab) {
-  // tab = optional indent value, default is tab (\t)
-  var formatted = "",
-    indent = "";
-  tab = tab || "\t";
-  xml.split(/>\s*</).forEach(function(node) {
-    if (node.match(/^\/\w/)) indent = indent.substring(tab.length); // decrease indent by one 'tab'
-    formatted += indent + "<" + node + ">\r\n";
-    if (node.match(/^<?\w[^>]*[^\/]$/)) indent += tab; // increase indent
-  });
-  return formatted.substring(1, formatted.length - 3);
-}
-
 const getAllUsers = async (jwt) => {
-  const res = await fetch(`${API_BASE}/api/user`, {
-    headers: {
-      Authorization: jwt,
-    },
-  })
-
-  return res.ok
-    ? res.json()
-    : [];
+  const res = await fetch(`${API_BASE}/api/user`, { headers: { Authorization: jwt } });
+  return res.ok ? res.json() : [];
 }
 
 function userFullName(user) {
@@ -498,25 +475,5 @@ function userFullName(user) {
         ? `${user.user_firstname} ${user.user_lastname}`
         : "[No Name]";
 }
-
-// const userDisplayName = (u) => `${userFullName(u)} (${u.user_email})`;
-
-/*
-// TODO: CORS
-async function getAllMessages(uuid, jwt) {
-  try {
-    const res = await fetch(`https://${HOSTNAME}/api/messages`, {
-      headers: {
-        Authorization: `Basic ${btoa(`${uuid}:${jwt}`)}`,
-      },
-    });
-    const json = await res.json();
-    console.log(json);
-    return json;
-  } catch(e) {
-    console.log('error fetching messages', e);
-  }
-}
-*/
 
 export default App;

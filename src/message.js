@@ -5,6 +5,9 @@ import {
   TextField,
   IconButton,
   Autocomplete,
+  Menu,
+  MenuItem,
+  Divider,
 } from "@mui/material";
 import { useState, useEffect, useRef } from "react";
 
@@ -13,15 +16,20 @@ import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import AddIcon from '@mui/icons-material/Add';
+import GroupAddIcon from '@mui/icons-material/GroupAdd';
 import DeleteIcon from "@mui/icons-material/Delete";
 import VideoCameraFrontIcon from '@mui/icons-material/VideoCameraFront';
 
 import { blue } from "@mui/material/colors";
 
 const Message = ({ client, user, messages, API_BASE, jwt, allUsers }) => {
+  const [members, setMembers] = useState([]);
   const [message, setMessage] = useState("");
   const [showAddUserToRoom, setShowAddUserToRoom] = useState(false);
   const scrollRef = useRef(null);
+
+  const [roomListAnchorEl, setRoomListAnchorEl] = useState(null);
+  const showRoomList = Boolean(roomListAnchorEl);
 
   const filteredMessages = messages.filter(m => m.from?.includes(user.jid) || m.to?.includes(user.jid));
 
@@ -54,6 +62,23 @@ const Message = ({ client, user, messages, API_BASE, jwt, allUsers }) => {
     }
   };
 
+  const memberList = async (event) => {
+    const res = await client.getRoomMembers(user.jid);
+
+    setMembers(res.muc.users.map((m) => ({
+      ...m,
+      name: allUsers.find((u) => m.jid.includes(u.user_id))?.name,
+    })));
+
+    setRoomListAnchorEl(event.target);
+  };
+
+  const closeRoomList = () => setRoomListAnchorEl(null);
+  const openAddUser = () => {
+    closeRoomList();
+    setShowAddUserToRoom(true);
+  }
+
   useEffect(() => {
     scrollRef.current.scrollTop = scrollRef?.current?.scrollHeight;
   }, [filteredMessages]);
@@ -75,11 +100,27 @@ const Message = ({ client, user, messages, API_BASE, jwt, allUsers }) => {
           <DeleteIcon fontSize="inherit" />
         </IconButton>
 
-        {user.isRoom &&
-          <IconButton onClick={() => setShowAddUserToRoom(true)}>
-            <AddIcon fontSize="inherit" />
+        {user.isRoom && <>
+          <IconButton onClick={memberList}>
+            <GroupAddIcon fontSize="inherit" />
           </IconButton>
-      }
+
+          <Menu
+            id="basic-menu"
+            anchorEl={roomListAnchorEl}
+            open={showRoomList}
+            onClose={closeRoomList}
+            MenuListProps={{
+              'aria-labelledby': 'basic-button',
+            }}
+          >
+            {members.map((m) => (
+              <MenuItem key={m.jid}>{m.name}</MenuItem>
+            ))}
+            <Divider />
+            <MenuItem onClick={openAddUser}>Add</MenuItem>
+          </Menu>
+        </>}
 
         <IconButton sx={{ ml: "auto" }} onClick={invite}>
           <VideoCameraFrontIcon fontSize="inherit" />
@@ -87,7 +128,7 @@ const Message = ({ client, user, messages, API_BASE, jwt, allUsers }) => {
       </Stack>
 
       <Stack sx={{ background: "#eee", flexGrow: 1, overflow: "auto", px: "10%" }} ref={scrollRef}>
-        {filteredMessages.map(m => <Chat key={m.id} message={m} client={client} />)}
+        {filteredMessages.map(m => <Chat key={m.id} message={m} client={client} isRoom={user.isRoom} />)}
       </Stack>
 
       <Stack direction="row" sx={{ p: 1 }}>
@@ -106,8 +147,12 @@ const Message = ({ client, user, messages, API_BASE, jwt, allUsers }) => {
   );
 };
 
-const Chat = ({ message, client }) => {
+const Chat = ({ message, client, isRoom }) => {
   const mine = !message.from || message.from.includes(client.config.jid);
+
+  // if we're in a room, grab the user's jid from the `from` field
+  // if it's a direct chat, grab just the bare JID
+  // const jid = message.from?.split("/")[isRoom ? 1 : 0];
 
   return (
     <Box

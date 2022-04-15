@@ -94,6 +94,7 @@ const Roster = ({
   roster,
   // presence,
   messages,
+  roomMessages,
   client,
   allUsers,
   API_BASE,
