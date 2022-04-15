@@ -114,11 +114,11 @@ const App = () => {
         setRoster(roster);
         setMessages({});
         setRoomMessages({});
-        /*
+
         roster.forEach((r) => {
-          xmpp.searchHistory({ with: r.jid });
+          // xmpp.searchHistory({ with: r.jid });
+          xmpp.searchHistory({ with: r.jid, paging: { before: "" }});
         });
-*/
       });
 
       // TODO: inject the messages with the names
@@ -169,10 +169,9 @@ const App = () => {
         // TODO groupchat ???
         const message = mam.archive?.item?.message;
         const { to, from } = message;
-        console.log("MAM MESSAGE. to, from", message, to, from);
-        return;
-        const fullUser = xmpp.jid.includes(to) ? from : to;
-        console.log("MAM FOR USER. my jid: ", xmpp.jid, fullUser);
+        // console.log("MAM MESSAGE. to, from", message, to, from);
+        const fullUser = to.includes(xmpp.config.jid) ? from : to;
+        // console.log("MAM USER KEY:" + fullUser);
         const [user] = fullUser.split("/");
         setMessages((prev) => ({
           ...prev,
@@ -287,7 +286,10 @@ const App = () => {
 
   // const addContact = () => client.subscribe(newContact);
 
-  const reconnect = () => client.connect();
+  const reconnect = async () => {
+    client.config.credentials.password = (await Auth.currentSession()).idToken.jwtToken;
+    client.connect();
+  };
 
   /*
   const acceptSubscription = (id) => {
