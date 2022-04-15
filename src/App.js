@@ -14,8 +14,9 @@ import {
 
 import "./App.css";
 import Login from "./login";
-import Roster from "./roster";
 import SideBar from "./sidebar";
+import Roster from "./roster";
+import Messages from "./messages";
 
 // AWS Config
 const REGION = "us-east-1";
@@ -113,11 +114,11 @@ const App = () => {
         });
       });
 
-      // TODO: inject the messages with the names
       xmpp.on("message", (message) => {
         if (message.type === 'meeting-invite') {
           setIncomingInvites((prev) => [...prev, message]);
         } else if (message.type === "chat") {
+          console.log("GOT THE MESSAGE", message);
           const [from] = message.from.split("/");
           setMessages((prev) => ({
             ...prev,
@@ -276,8 +277,6 @@ const App = () => {
     };
   });
 
-  // const messageUsers = messages.reduce(())
-
   console.log("extended roster", extendedRoster);
 
   // find my own user from the User API
@@ -399,17 +398,24 @@ const App = () => {
           ? <Roster
               roster={extendedRoster}
               // presence={presence}
-              allUsers={allUsers}
               messages={messages}
-              roomMessages={roomMessages}
+              allUsers={allUsers}
               client={client}
               API_BASE={API_BASE}
               MUC_LIGHT_HOSTNAME={MUC_LIGHT_HOSTNAME}
               jwt={jwt}
-              me={me}
             />
           : nav === 'messages'
-            ? <div>Messages</div>
+            ? <Messages
+                roster={extendedRoster}
+                messages={messages}
+                // presence={presence}
+                allUsers={allUsers}
+                client={client}
+                API_BASE={API_BASE}
+                MUC_LIGHT_HOSTNAME={MUC_LIGHT_HOSTNAME}
+                jwt={jwt}
+              />
             : null}
       </Box>
     </div>

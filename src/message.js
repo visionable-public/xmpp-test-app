@@ -15,7 +15,6 @@ import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
-import AddIcon from '@mui/icons-material/Add';
 import GroupAddIcon from '@mui/icons-material/GroupAdd';
 import DeleteIcon from "@mui/icons-material/Delete";
 import VideoCameraFrontIcon from '@mui/icons-material/VideoCameraFront';
@@ -96,7 +95,7 @@ const Message = ({ client, user, messages, API_BASE, jwt, allUsers }) => {
       <Stack direction="row" sx={{ px: 2, background: "white", alignItems: "center" }}>
         <h2>{user.name}</h2>
 
-        <IconButton onClick={removeContact}>
+        <IconButton sx={{ ml: "auto" }} onClick={removeContact}>
           <DeleteIcon fontSize="inherit" />
         </IconButton>
 
@@ -122,7 +121,7 @@ const Message = ({ client, user, messages, API_BASE, jwt, allUsers }) => {
           </Menu>
         </>}
 
-        <IconButton sx={{ ml: "auto" }} onClick={invite}>
+        <IconButton onClick={invite}>
           <VideoCameraFrontIcon fontSize="inherit" />
         </IconButton>
       </Stack>

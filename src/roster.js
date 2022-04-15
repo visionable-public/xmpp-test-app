@@ -94,13 +94,11 @@ const Roster = ({
   roster,
   // presence,
   messages,
-  roomMessages,
   client,
   allUsers,
   API_BASE,
   MUC_LIGHT_HOSTNAME,
   jwt,
-  me,
 }) => {
   const [search, setSearch] = useState("");
   const [subNav, setSubNav] = useState(null);
@@ -220,6 +218,7 @@ const Roster = ({
   );
 };
 
+// TODO put this is allUsers state
 function initials(u) {
   return u.name?.split(" ")?.slice(0, 2)?.map(n => n.substr(0, 1));
 }
