@@ -183,7 +183,7 @@ const App = () => {
       });
 
       xmpp.on("roster:update", async (data) => { // roster item change
-        data.roster.times.forEach((r) => {
+        data.roster.items.forEach((r) => {
           setMessages((prev) => ({ ...prev, [r.jid]: [] })); // delete any messages from them
           xmpp.searchHistory({ with: r.jid, paging: { before: "" }}); // and replace
         });
