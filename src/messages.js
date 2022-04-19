@@ -42,8 +42,8 @@ const Messages = ({ client, allUsers, roster, messages, jwt, API_BASE }) => {
 
   const filteredUsers = users.filter((u) => { // filter by search
     const s = search.toLowerCase();
-    return u.name.toLowerCase().includes(s)
-      || s.includes(u.name.toLowerCase())
+    return u.name?.toLowerCase().includes(s)
+      || s.includes(u.name?.toLowerCase())
       || u.user?.user_email?.includes(s)
       || s.includes(u.user?.user_email);
   });
@@ -70,7 +70,7 @@ const Messages = ({ client, allUsers, roster, messages, jwt, API_BASE }) => {
             />
         </Box>
 
-        <List>
+        <List className="scroll-list">
           {filteredUsers.map((u) => (
             <ListItem key={u.jid} disablePadding>
               <ListItemButton onClick={() => setSubNav(u)}>

@@ -25,11 +25,11 @@ const USER_POOL_WEB_CLIENT_ID = "5ai2feek1rgpso497om1kbj4ug";
 const API_BASE = "https://saas-api.visionable.one";
 
 // XMPP Config
-const HOSTNAME = "saas-msg.visionable.one";
+// const HOSTNAME = "saas-msg.visionable.one";
 const PROTOCOL = "wss";
 const PORT = "5443";
 const ENDPOINT = "ws-xmpp";
-const MUC_LIGHT_HOSTNAME = `muclight.${HOSTNAME}`;
+// const MUC_LIGHT_HOSTNAME = `muclight.${HOSTNAME}`;
 
 Amplify.configure({
   Auth: {
@@ -42,13 +42,13 @@ Amplify.configure({
 const resource = localStorage.getItem("xmpp-resource") || crypto.randomUUID();
 localStorage.setItem("xmpp-resource", resource);
 
-const initXMPP = async (jid, password) =>
+const initXMPP = async (jid, password, hostname) =>
   XMPP.createClient({
     jid,
     password,
     resource,
     transports: {
-      websocket: `${PROTOCOL}://${HOSTNAME}:${PORT}/${ENDPOINT}`,
+      websocket: `${PROTOCOL}://${hostname}:${PORT}/${ENDPOINT}`,
     },
   });
 
@@ -70,20 +70,34 @@ const App = () => {
   const [messages, setMessages] = useState({}); // { user: [message] }
   const [roomMessages, setRoomMessages] = useState({}); // { room: [message] }
   const [connected, setConnected] = useState(false);
+  const [server, setServer] = useState("saas.visionable.one");
+  const [config, setConfig] = useState({});
+
+  useEffect(() => {
+    (async function () {
+      // setConfig(await getServiceConfig(server));
+    })();
+  }, [server])
+
+  const [serviceName, ...[domain]] = server.split(/\.(.*)/s); // split out the serviceName from the rest of the host
+  const xmppHostname = `${serviceName}-msg.${domain}`; // e.g. saas-msg.visionable.one
+  const mucHostname = `muclight.${xmppHostname}`; // e.g. muclight.saas-msg.visionable.one
+  console.log(serviceName, domain, xmppHostname, mucHostname);
 
   const signIn = async () => {
     setError("");
     setLoading(true);
     localStorage.setItem("username", username);
+    console.log("config", config);
 
     try {
       const { username: uuid, signInUserSession: session } = await Auth.signIn(username, password);
       window.Auth = Auth;
       const jwt = session.idToken.jwtToken;
       setJwt(jwt);
-      const jid = `${uuid}@${HOSTNAME}`;
+      const jid = `${uuid}@${xmppHostname}`;
       setJid(jid);
-      const xmpp = await initXMPP(jid, jwt);
+      const xmpp = await initXMPP(jid, jwt, xmppHostname);
 
       console.log(jid, jwt)
 
@@ -108,10 +122,8 @@ const App = () => {
         setMessages({});
         setRoomMessages({});
 
-        // Get the last 50 messages for each roster item
-        roster.forEach((r) => {
-          xmpp.searchHistory({ with: r.jid, paging: { before: "" }});
-        });
+        // Get all of the messages up until the last one I've seen
+        getAllMessages(xmpp);
       });
 
       xmpp.on("message", (message) => {
@@ -162,7 +174,11 @@ const App = () => {
         // TODO groupchat
         const message = mam.archive?.item?.message;
         const { to, from } = message;
-        const fullUser = to.includes(xmpp.config.jid) ? from : to;
+        const fullUser = to?.includes(xmpp.config.jid) ? from : to;
+        if (!fullUser) {
+          console.log("NO FULL USER", message);
+          return;
+        }
         const [user] = fullUser.split("/");
         setMessages((prev) => ({
           ...prev,
@@ -175,11 +191,11 @@ const App = () => {
 
       xmpp.on("subscribe", (data) => { // if someone subscribes to us..
         xmpp.acceptSubscription(data.from); // auto accept
-        xmpp.subscribe(data.from); // TODO: and auto add them to ours?
+        // xmpp.subscribe(data.from); // TODO: and auto add them to ours?
       });
 
       xmpp.on("unsubscribe", (data) => { // if someone removes me from their roster
-        xmpp.unsubscribe(data.from); // remove them from ours
+        // xmpp.unsubscribe(data.from); // remove them from ours
       });
 
       xmpp.on("roster:update", async (data) => { // roster item change
@@ -244,9 +260,8 @@ const App = () => {
     Hub.listen('auth', async (data) => {
       if (data.payload.event === "tokenRefresh") {
         console.log("token refreshed", data);
-        client.config.credentials.password = (await Auth.currentSession()).idToken.jwtToken;
-
-        client.connect();
+        // client.config.credentials.password = (await Auth.currentSession()).idToken.jwtToken;
+        // client.connect();
       }
     });
   }, []);
@@ -323,6 +338,11 @@ const App = () => {
     setError(null);
   };
 
+  const onChangeServer = (e) => {
+    setServer(e.target.value);
+    setError(null);
+  };
+
   /*
   const changeName = () => {
     client.publishVCard({ fullName: newName });
@@ -369,7 +389,7 @@ const App = () => {
   if (!online) {
     return (
       <div className="App">
-        <Login loading={loading} username={username} onChangeUsername={onChangeUsername} password={password} onChangePassword={onChangePassword} error={error} signIn={signIn} />
+        <Login loading={loading} username={username} onChangeUsername={onChangeUsername} password={password} onChangePassword={onChangePassword} error={error} signIn={signIn} server={server} onChangeServer={onChangeServer} />
       </div>
     );
   }
@@ -402,7 +422,7 @@ const App = () => {
               allUsers={allUsers}
               client={client}
               API_BASE={API_BASE}
-              MUC_LIGHT_HOSTNAME={MUC_LIGHT_HOSTNAME}
+              MUC_LIGHT_HOSTNAME={mucHostname}
               jwt={jwt}
             />
           : nav === 'messages'
@@ -413,7 +433,7 @@ const App = () => {
                 allUsers={allUsers}
                 client={client}
                 API_BASE={API_BASE}
-                MUC_LIGHT_HOSTNAME={MUC_LIGHT_HOSTNAME}
+                MUC_LIGHT_HOSTNAME={mucHostname}
                 jwt={jwt}
               />
             : null}
@@ -451,6 +471,23 @@ function userFullName(user) {
       : user?.user_firstname
         ? `${user.user_firstname} ${user.user_lastname}`
         : "[No Name]";
+}
+
+async function getServiceConfig(hostname) {
+  try {
+    const res = await fetch(`https://${hostname}/config.json`);
+    return await res.json();
+  } catch(e) {
+    console.log(e);
+    alert("Error requesting configuration data for this service");
+  }
+}
+
+async function getAllMessages(client, after = "") {
+  const { complete, paging: { last } } = await client.searchHistory({ paging: { after }});
+  if (!complete) {
+    getAllMessages(client, last);
+  }
 }
 
 export default App;
