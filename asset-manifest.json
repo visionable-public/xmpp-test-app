@@ -1,20 +1,20 @@
 {
   "files": {
     "main.css": "/xmpp-test-app/static/css/main.a4e36200.chunk.css",
-    "main.js": "/xmpp-test-app/static/js/main.961aae67.chunk.js",
-    "main.js.map": "/xmpp-test-app/static/js/main.961aae67.chunk.js.map",
+    "main.js": "/xmpp-test-app/static/js/main.c577636b.chunk.js",
+    "main.js.map": "/xmpp-test-app/static/js/main.c577636b.chunk.js.map",
     "runtime-main.js": "/xmpp-test-app/static/js/runtime-main.cdc5166e.js",
     "runtime-main.js.map": "/xmpp-test-app/static/js/runtime-main.cdc5166e.js.map",
-    "static/js/2.4f36ed6a.chunk.js": "/xmpp-test-app/static/js/2.4f36ed6a.chunk.js",
-    "static/js/2.4f36ed6a.chunk.js.map": "/xmpp-test-app/static/js/2.4f36ed6a.chunk.js.map",
+    "static/js/2.cafa5ede.chunk.js": "/xmpp-test-app/static/js/2.cafa5ede.chunk.js",
+    "static/js/2.cafa5ede.chunk.js.map": "/xmpp-test-app/static/js/2.cafa5ede.chunk.js.map",
     "index.html": "/xmpp-test-app/index.html",
     "static/css/main.a4e36200.chunk.css.map": "/xmpp-test-app/static/css/main.a4e36200.chunk.css.map",
-    "static/js/2.4f36ed6a.chunk.js.LICENSE.txt": "/xmpp-test-app/static/js/2.4f36ed6a.chunk.js.LICENSE.txt"
+    "static/js/2.cafa5ede.chunk.js.LICENSE.txt": "/xmpp-test-app/static/js/2.cafa5ede.chunk.js.LICENSE.txt"
   },
   "entrypoints": [
     "static/js/runtime-main.cdc5166e.js",
-    "static/js/2.4f36ed6a.chunk.js",
+    "static/js/2.cafa5ede.chunk.js",
     "static/css/main.a4e36200.chunk.css",
-    "static/js/main.961aae67.chunk.js"
+    "static/js/main.c577636b.chunk.js"
   ]
 }
