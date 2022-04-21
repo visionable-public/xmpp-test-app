@@ -193,7 +193,7 @@ const App = () => {
 
       xmpp.on("subscribe", (data) => { // if someone subscribes to us..
         xmpp.acceptSubscription(data.from); // auto accept
-        // xmpp.subscribe(data.from); // TODO: and auto add them to ours?
+        xmpp.subscribe(data.from);
       });
 
       xmpp.on("unsubscribe", (data) => { // if someone removes me from their roster
@@ -292,7 +292,7 @@ const App = () => {
   });
 
   // console.log('new presence list', presence);
-  // console.log("extended roster", extendedRoster);
+  console.log("extended roster", extendedRoster);
 
   // find my own user from the User API
   const me = allUsers.find((u) => client.jid.match(u.user_id));
