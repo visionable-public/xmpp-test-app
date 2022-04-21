@@ -1,3 +1,9 @@
+#root {
+  display: flex;
+}
+div[data-amplify-authenticator] {
+  margin: 10vh auto;
+}
 .App {
   display: flex;
   flex-direction: row;
