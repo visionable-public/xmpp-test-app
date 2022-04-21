@@ -9,7 +9,6 @@ import {
 import {
   Contacts as ContactsIcon,
   Chat as ChatIcon,
-  Logout as LogoutIcon,
 } from "@mui/icons-material";
 
 import Profile from './profile';

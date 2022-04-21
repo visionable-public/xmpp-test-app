@@ -1,6 +1,6 @@
-import { useState, useEffect, createContext, useContext } from "react";
+import { useState, useEffect } from "react";
 import * as XMPP from "stanza";
-import Amplify, { Auth, Hub } from "aws-amplify";
+
 import {
   Box,
   Button,
@@ -14,33 +14,16 @@ import {
 
 import db from "./db";
 import "./App.css";
-import Login from "./login";
 import SideBar from "./sidebar";
 import Roster from "./roster";
 import Messages from "./messages";
 
 window.db = db;
 
-// AWS Config
-const REGION = "us-east-1";
-const USER_POOL_ID = "us-east-1_ESYPvGhN3";
-const USER_POOL_WEB_CLIENT_ID = "5ai2feek1rgpso497om1kbj4ug";
 const API_BASE = "https://saas-api.visionable.one";
-
-// XMPP Config
-// const HOSTNAME = "saas-msg.visionable.one";
 const PROTOCOL = "wss";
 const PORT = "5443";
 const ENDPOINT = "ws-xmpp";
-// const MUC_LIGHT_HOSTNAME = `muclight.${HOSTNAME}`;
-
-Amplify.configure({
-  Auth: {
-    region: REGION,
-    userPoolId: USER_POOL_ID,
-    userPoolWebClientId: USER_POOL_WEB_CLIENT_ID,
-  },
-});
 
 const resource = localStorage.getItem("xmpp-resource") || crypto.randomUUID();
 localStorage.setItem("xmpp-resource", resource);
@@ -55,55 +38,40 @@ const initXMPP = async (jid, password, hostname) =>
     },
   });
 
-const App = () => {
+const App = ({ signOutAWS, user }) => {
   const [client, setClient] = useState(null);
-  const [username, setUsername] = useState(localStorage.getItem("username") || "");
-  const [password, setPassword] = useState("Green12345!");
-  const [jid, setJid] = useState("");
   const [jwt, setJwt] = useState("");
-  const [online, setOnline] = useState(false);
   const [roster, setRoster] = useState([]);
   const [presence, setPresence] = useState({});
   const [incomingInvites, setIncomingInvites] = useState([]);
   const [inviteResponses, setInviteResponses] = useState({});
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
   const [allUsers, setAllUsers] = useState([]);
   const [nav, setNav] = useState("contacts");
   const [connected, setConnected] = useState(false);
-  const [server, setServer] = useState("saas.visionable.one");
-  const [config, setConfig] = useState({});
-
-  useEffect(() => {
-    (async function () {
-      // setConfig(await getServiceConfig(server));
-    })();
-  }, [server])
+  const [server] = useState("saas.visionable.one");
 
   const [serviceName, ...[domain]] = server.split(/\.(.*)/s); // split out the serviceName from the rest of the host
   const xmppHostname = `${serviceName}-msg.${domain}`; // e.g. saas-msg.visionable.one
   const mucHostname = `muclight.${xmppHostname}`; // e.g. muclight.saas-msg.visionable.one
 
   const signIn = async () => {
-    setError("");
-    setLoading(true);
-
-    if (localStorage.getItem("username") !== username) {
-      await db.messages.clear();
+    if (client) {
+      return; // only sign in once
     }
 
-    localStorage.setItem("username", username);
+    if (localStorage.getItem("username") !== user.username) {
+      await db.messages.clear();
+    }
+    localStorage.setItem("username", user.username);
 
     try {
-      const { username: uuid, signInUserSession: session } = await Auth.signIn(username, password);
+      const { signInUserSession: session } = user;
       const jwt = session.idToken.jwtToken;
       setJwt(jwt);
-      const jid = `${uuid}@${xmppHostname}`;
-      setJid(jid);
+      const jid = `${user.username}@${xmppHostname}`;
       const xmpp = await initXMPP(jid, jwt, xmppHostname);
 
       setClient(xmpp);
-      setLoading(false);
       setConnected(true);
 
       const cognitoUsers = await getAllUsers(jwt);
@@ -116,7 +84,6 @@ const App = () => {
         xmpp.sendPresence();
         xmpp.enableKeepAlive();
         xmpp.enableCarbons();
-        setOnline(true);
 
         const roster = (await xmpp.getRoster()).items;
         setRoster(roster);
@@ -142,7 +109,6 @@ const App = () => {
             timestamp: new Date(),
           }, message.id)
         } else if (message.type === "groupchat") {
-          // TODO: DRY up this code, same as regular chat?
           const [room, user] = message.from.split("/");
           console.log("GOT A GROUPCHAT", room, user);
         }
@@ -158,11 +124,11 @@ const App = () => {
             to: message.to,
             body: message.body,
             type: message.type,
-            group: null, // TODO
+            group: null,
             timestamp: new Date(),
           }, message.id)
         } else if (message.type === "groupchat") {
-          // TODO: just seems to work??
+          // TODO:
         }
       });
 
@@ -196,14 +162,13 @@ const App = () => {
         xmpp.subscribe(data.from);
       });
 
-      xmpp.on("unsubscribe", (data) => { // if someone removes me from their roster
+      xmpp.on("unsubscribe", () => { // if someone removes me from their roster
         // xmpp.unsubscribe(data.from); // remove them from ours?
       });
 
       xmpp.on("roster:update", async (data) => { // roster item change
         data.roster.items.forEach((r) => {
-          // setMessages((prev) => ({ ...prev, [r.jid]: [] })); // delete any messages from them
-          xmpp.searchHistory({ with: r.jid, paging: { before: "" }}); // and replace
+          xmpp.searchHistory({ with: r.jid, paging: { before: "" }}); // get the last few messages
         });
 
         setRoster((await xmpp.getRoster()).items)
@@ -241,6 +206,7 @@ const App = () => {
 
       // on disconnect, retry
       xmpp.on("disconnected", () => {
+        console.log("DISCONNECTED");
         setConnected(false);
         // setTimeout(xmpp.connect, 3000)
       })
@@ -252,21 +218,10 @@ const App = () => {
       xmpp.connect();
     } catch (e) {
       console.error("caught", e);
-      setLoading(false);
-      setError(e.message);
     }
   };
 
-  // TODO: re-authenticate when our JWT refreshes
-  useEffect(() => {
-    Hub.listen('auth', async (data) => {
-      if (data.payload.event === "tokenRefresh") {
-        console.log("token refreshed", data);
-        // client.config.credentials.password = (await Auth.currentSession()).idToken.jwtToken;
-        // client.connect();
-      }
-    });
-  }, []);
+  useEffect(signIn, [user]);
 
   // extend the roster with info from the User API, presence, etc.
   const extendedRoster = roster.map(r => {
@@ -291,30 +246,25 @@ const App = () => {
     };
   });
 
-  // console.log('new presence list', presence);
+  console.log('new presence list', presence);
   console.log("extended roster", extendedRoster);
 
   // find my own user from the User API
-  const me = allUsers.find((u) => client.jid.match(u.user_id));
+  const me = allUsers.find((u) => client.jid.match(u.user_id)) || {};
 
   const reconnect = async () => {
-    client.config.credentials.password = (await Auth.currentSession()).idToken.jwtToken;
+    console.log("reconnecting");
+    // client.config.credentials.password = user.idToken.jwtToken; // TODO
     client.connect();
   };
 
   const signOut = async () => {
     client.disconnect();
-    setOnline(false);
     setConnected(false);
     setRoster([]);
     setPresence({});
     db.messages.clear();
-
-    try {
-      await Auth.signOut();
-    } catch (error) {
-      console.log("error signing out: ", error);
-    }
+    signOutAWS();
   };
 
   const acceptInvite = (message) => {
@@ -325,21 +275,6 @@ const App = () => {
   const rejectInvite = (message) => {
     setInviteResponses((prev) => ({ ...prev, [message.id]: "reject" }))
     client.sendMessage({ to: message.from, body: message.id, type: 'meeting-invite-reject' });
-  };
-
-  const onChangeUsername = (e) => {
-    setUsername(e.target.value);
-    setError(null);
-  };
-
-  const onChangePassword = (e) => {
-    setPassword(e.target.value);
-    setError(null);
-  };
-
-  const onChangeServer = (e) => {
-    setServer(e.target.value);
-    setError(null);
   };
 
   /*
@@ -385,11 +320,9 @@ const App = () => {
   }
 */
 
-  if (!online) {
+  if (!client) {
     return (
-      <div className="App">
-        <Login loading={loading} username={username} onChangeUsername={onChangeUsername} password={password} onChangePassword={onChangePassword} error={error} signIn={signIn} server={server} onChangeServer={onChangeServer} />
-      </div>
+      <div className="App">Loading</div>
     );
   }
 
@@ -415,6 +348,16 @@ const App = () => {
       <Box className="main">
         {nav === 'contacts'
           ? <Roster
+            roster={extendedRoster}
+            // presence={presence}
+            allUsers={allUsers}
+            client={client}
+            API_BASE={API_BASE}
+            MUC_LIGHT_HOSTNAME={mucHostname}
+            jwt={jwt}
+            />
+          : nav === 'messages'
+            ? <Messages
               roster={extendedRoster}
               // presence={presence}
               allUsers={allUsers}
@@ -422,16 +365,6 @@ const App = () => {
               API_BASE={API_BASE}
               MUC_LIGHT_HOSTNAME={mucHostname}
               jwt={jwt}
-            />
-          : nav === 'messages'
-            ? <Messages
-                roster={extendedRoster}
-                // presence={presence}
-                allUsers={allUsers}
-                client={client}
-                API_BASE={API_BASE}
-                MUC_LIGHT_HOSTNAME={mucHostname}
-                jwt={jwt}
               />
             : null}
       </Box>
