@@ -36,6 +36,13 @@ const Message = ({ client, user, API_BASE, jwt, allUsers }) => {
     db.messages.where("from").equals(user.jid).or("to").equals(user.jid).sortBy("timestamp"),
   [user]) || [];
 
+  const extendedMessages = messages.map((message) => { // add user info
+    const user = allUsers.find((u) => message.from.includes(u.user_id));
+    const name = user?.name || message.from;
+
+    return { ...message, user, name };
+  });
+
   const removeContact = async () => {
     if (user.isRoom) {
       // TODO: bare jid
@@ -130,7 +137,7 @@ const Message = ({ client, user, API_BASE, jwt, allUsers }) => {
       </Stack>
 
       <Stack sx={{ background: "#eee", flexGrow: 1, overflow: "auto", px: "10%" }} ref={scrollRef}>
-        {messages.map(m => <Chat key={m.id} message={m} client={client} isRoom={user.isRoom} />)}
+        {extendedMessages.map(m => <Chat key={m.id} message={m} client={client} isRoom={user.isRoom} />)}
       </Stack>
 
       <Stack direction="row" sx={{ p: 1 }}>
@@ -162,13 +169,18 @@ const Chat = ({ message, client, isRoom }) => {
       sx={{
         background: mine ? blue[700] : "white",
         color: mine ? "white" : "black",
-        p: 2,
+        p: 1.5,
         mx: 2, my: 1,
-        borderRadius: 3,
+        borderRadius: 2,
         marginLeft: mine ? "auto" : 0,
         marginRight: mine ? 0 : "auto",
       }}
     >
+      <span style={{ fontSize: "0.8em" }}>
+        <b>{message.name}</b>
+        <span style={{ marginLeft: "1em", color: mine ? "#eee" : "#666" }}>{message.timestamp.toLocaleString()}</span>
+      </span>
+      <br />
       {message.body}
     </Box>
   );
