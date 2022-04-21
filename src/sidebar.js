@@ -36,7 +36,7 @@ const SideBar = ({ client, me, setNav, nav, signOut }) => (
     background: "#091c38",
     color: "white"
   }}>
-    <Profile client={client} me={me} />
+    <Profile client={client} me={me} signOut={signOut} />
 
     {items.map(i => {
       const IconComponent = i.iconComponent;
@@ -55,17 +55,17 @@ const SideBar = ({ client, me, setNav, nav, signOut }) => (
         </ListItem>
       )})}
 
-    <ListItem disablePadding sx={{ mt: "auto" }}>
-      <ListItemButton onClick={signOut}>
-        <ListItemIcon>
-          <LogoutIcon sx={{ color: "white" }} />
-        </ListItemIcon>
+    {/* <ListItem disablePadding sx={{ mt: "auto" }}> */}
+    {/*   <ListItemButton onClick={signOut}> */}
+    {/*     <ListItemIcon> */}
+    {/*       <LogoutIcon sx={{ color: "white" }} /> */}
+    {/*     </ListItemIcon> */}
 
-        <ListItemText>
-          Log Out
-        </ListItemText>
-      </ListItemButton>
-    </ListItem>
+    {/*     <ListItemText> */}
+    {/*       Log Out */}
+    {/*     </ListItemText> */}
+    {/*   </ListItemButton> */}
+    {/* </ListItem> */}
   </List>
 );
 

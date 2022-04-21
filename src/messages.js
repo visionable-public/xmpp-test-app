@@ -17,40 +17,39 @@ import {
   Avatar,
   // Autocomplete,
 } from "@mui/material";
+import { useLiveQuery } from "dexie-react-hooks";
 
 import GroupsIcon from '@mui/icons-material/Groups';
 
 import Message from "./message";
 
-const Messages = ({ client, allUsers, roster, messages, jwt, API_BASE }) => {
+import db from "./db";
+
+const Messages = ({ client, allUsers, roster, jwt, API_BASE }) => {
   const [search, setSearch] = useState("");
   const [subNav, setSubNav] = useState(null);
 
-  console.log("messages", messages);
+  // pull out all of the unique IDs from all of the messages
+  const tos = useLiveQuery(() => db.messages.orderBy("to").uniqueKeys()) || [];
+  const froms = useLiveQuery(() => db.messages.orderBy("from").uniqueKeys()) || [];
+  const jids = tos.concat(froms).filter((v, i, a) => a.indexOf(v) === i); // all unique jids
 
-  const users = Object.entries(messages).map(([jid, ms]) => { // generate the list of message "users"
-    const user = allUsers.find((u) => jid.includes(u.user_id)); // user names come from all users
-    const name = user?.name || roster.find((r) => r.jid === jid)?.name; // room names will be in your roster
+  const users = jids?.map(jid => { // add names
+    const user = allUsers.find((u) => jid.includes(u.user_id));
+    const name = user?.name // user names come from all users
+      || roster.find((r) => r.jid === jid)?.name // room names will be in your roster
+      || jid;
 
-    return {
-      jid,
-      user,
-      name,
-      messages: ms,
-    };
+    return { jid, user, name };
   });
 
-  const filteredUsers = users.filter((u) => { // filter by search
+  const filteredUsers = users?.filter((u) => { // filter by search
     const s = search.toLowerCase();
     return u.name?.toLowerCase().includes(s)
       || s.includes(u.name?.toLowerCase())
       || u.user?.user_email?.includes(s)
       || s.includes(u.user?.user_email);
   });
-
-  const chatMessages = subNav && messages[subNav.jid]
-    ? messages[subNav.jid]
-    : [];
 
   return (
     <>
@@ -96,7 +95,7 @@ const Messages = ({ client, allUsers, roster, messages, jwt, API_BASE }) => {
       </Paper>
 
       <Paper className="right-section">
-        {subNav && <Message allUsers={allUsers} client={client} user={subNav} messages={chatMessages} API_BASE={API_BASE} jwt={jwt} />}
+        {subNav && <Message allUsers={allUsers} client={client} user={subNav} API_BASE={API_BASE} jwt={jwt} />}
       </Paper>
     </>
   );

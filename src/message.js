@@ -18,10 +18,12 @@ import DialogTitle from '@mui/material/DialogTitle';
 import GroupAddIcon from '@mui/icons-material/GroupAdd';
 import DeleteIcon from "@mui/icons-material/Delete";
 import VideoCameraFrontIcon from '@mui/icons-material/VideoCameraFront';
-
 import { blue } from "@mui/material/colors";
 
-const Message = ({ client, user, messages, API_BASE, jwt, allUsers }) => {
+import { useLiveQuery } from "dexie-react-hooks";
+import db from './db';
+
+const Message = ({ client, user, API_BASE, jwt, allUsers }) => {
   const [members, setMembers] = useState([]);
   const [message, setMessage] = useState("");
   const [showAddUserToRoom, setShowAddUserToRoom] = useState(false);
@@ -30,7 +32,9 @@ const Message = ({ client, user, messages, API_BASE, jwt, allUsers }) => {
   const [roomListAnchorEl, setRoomListAnchorEl] = useState(null);
   const showRoomList = Boolean(roomListAnchorEl);
 
-  const filteredMessages = messages.filter(m => m.from?.includes(user.jid) || m.to?.includes(user.jid));
+  const messages = useLiveQuery(() => 
+    db.messages.where("from").equals(user.jid).or("to").equals(user.jid).sortBy("timestamp"),
+  [user]) || [];
 
   const removeContact = async () => {
     if (user.isRoom) {
@@ -55,7 +59,6 @@ const Message = ({ client, user, messages, API_BASE, jwt, allUsers }) => {
 
   const invite = async () => {
     const body = await createMeeting(API_BASE, jwt);
-    console.log("body", body);
     if (body.uuid) {
       client.sendMessage({ to: user.jid, body: body.uuid, type: 'meeting-invite' });
     }
@@ -80,7 +83,7 @@ const Message = ({ client, user, messages, API_BASE, jwt, allUsers }) => {
 
   useEffect(() => {
     scrollRef.current.scrollTop = scrollRef?.current?.scrollHeight;
-  }, [filteredMessages]);
+  }, [messages]);
 
   return (
     <Stack sx={{ flexGrow: 1 }}>
@@ -127,7 +130,7 @@ const Message = ({ client, user, messages, API_BASE, jwt, allUsers }) => {
       </Stack>
 
       <Stack sx={{ background: "#eee", flexGrow: 1, overflow: "auto", px: "10%" }} ref={scrollRef}>
-        {filteredMessages.map(m => <Chat key={m.id} message={m} client={client} isRoom={user.isRoom} />)}
+        {messages.map(m => <Chat key={m.id} message={m} client={client} isRoom={user.isRoom} />)}
       </Stack>
 
       <Stack direction="row" sx={{ p: 1 }}>

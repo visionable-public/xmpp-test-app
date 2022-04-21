@@ -12,11 +12,14 @@ import {
   Alert,
 } from "@mui/material";
 
+import db from "./db";
 import "./App.css";
 import Login from "./login";
 import SideBar from "./sidebar";
 import Roster from "./roster";
 import Messages from "./messages";
+
+window.db = db;
 
 // AWS Config
 const REGION = "us-east-1";
@@ -67,8 +70,6 @@ const App = () => {
   const [error, setError] = useState(null);
   const [allUsers, setAllUsers] = useState([]);
   const [nav, setNav] = useState("contacts");
-  const [messages, setMessages] = useState({}); // { user: [message] }
-  const [roomMessages, setRoomMessages] = useState({}); // { room: [message] }
   const [connected, setConnected] = useState(false);
   const [server, setServer] = useState("saas.visionable.one");
   const [config, setConfig] = useState({});
@@ -82,24 +83,24 @@ const App = () => {
   const [serviceName, ...[domain]] = server.split(/\.(.*)/s); // split out the serviceName from the rest of the host
   const xmppHostname = `${serviceName}-msg.${domain}`; // e.g. saas-msg.visionable.one
   const mucHostname = `muclight.${xmppHostname}`; // e.g. muclight.saas-msg.visionable.one
-  console.log(serviceName, domain, xmppHostname, mucHostname);
 
   const signIn = async () => {
     setError("");
     setLoading(true);
+
+    if (localStorage.getItem("username") !== username) {
+      await db.messages.clear();
+    }
+
     localStorage.setItem("username", username);
-    console.log("config", config);
 
     try {
       const { username: uuid, signInUserSession: session } = await Auth.signIn(username, password);
-      window.Auth = Auth;
       const jwt = session.idToken.jwtToken;
       setJwt(jwt);
       const jid = `${uuid}@${xmppHostname}`;
       setJid(jid);
       const xmpp = await initXMPP(jid, jwt, xmppHostname);
-
-      console.log(jid, jwt)
 
       setClient(xmpp);
       setLoading(false);
@@ -119,37 +120,31 @@ const App = () => {
 
         const roster = (await xmpp.getRoster()).items;
         setRoster(roster);
-        setMessages({});
-        setRoomMessages({});
 
         // Get all of the messages up until the last one I've seen
-        getAllMessages(xmpp);
+        const lastMessage = await db.messages.orderBy("timestamp").last();
+        getAllMessages({ client: xmpp, start: lastMessage?.timestamp });
       });
 
       xmpp.on("message", (message) => {
         if (message.type === 'meeting-invite') {
           setIncomingInvites((prev) => [...prev, message]);
         } else if (message.type === "chat") {
-          console.log("GOT THE MESSAGE", message);
           const [from] = message.from.split("/");
-          setMessages((prev) => ({
-            ...prev,
-            [from]: [
-              ...(prev[from] || []),
-              message,
-            ],
-          }));
+
+          db.messages.put({
+            id: message.id,
+            from,
+            to: message.to,
+            body: message.body,
+            type: message.type,
+            group: null,
+            timestamp: new Date(),
+          }, message.id)
         } else if (message.type === "groupchat") {
           // TODO: DRY up this code, same as regular chat?
           const [room, user] = message.from.split("/");
           console.log("GOT A GROUPCHAT", room, user);
-          setMessages((prev) => ({
-            ...prev,
-            [room]: [
-              ...(prev[room] || []),
-              message,
-            ],
-          }));
         }
       });
 
@@ -157,14 +152,15 @@ const App = () => {
         if (message.type === 'meeting-invite') {
           // TODO: display something in the chat
         } else if (message.type === "chat") {
-          const [to] = message.to.split("/");
-          setMessages((prev) => ({
-            ...prev,
-            [to]: [
-              ...(prev[to] || []),
-              message,
-            ],
-          }));
+          db.messages.put({
+            id: message.id,
+            from: xmpp.config.jid,
+            to: message.to,
+            body: message.body,
+            type: message.type,
+            group: null, // TODO
+            timestamp: new Date(),
+          }, message.id)
         } else if (message.type === "groupchat") {
           // TODO: just seems to work??
         }
@@ -173,20 +169,26 @@ const App = () => {
       xmpp.on("mam:item", (mam) => {
         // TODO groupchat
         const message = mam.archive?.item?.message;
-        const { to, from } = message;
-        const fullUser = to?.includes(xmpp.config.jid) ? from : to;
-        if (!fullUser) {
-          console.log("NO FULL USER", message);
-          return;
+        const timestamp = mam.archive?.item?.delay?.timestamp;
+        if (message.type === 'chat') {
+          const { to } = message;
+          const [from] = message.from.split("/");
+          const fullUser = to?.includes(xmpp.config.jid) ? from : to;
+          if (!fullUser) {
+            console.log("NO FULL USER", message);
+            return;
+          }
+
+          db.messages.put({
+            id: message.id,
+            from,
+            to: message.to,
+            body: message.body,
+            type: message.type,
+            group: null,
+            timestamp,
+          }, message.id)
         }
-        const [user] = fullUser.split("/");
-        setMessages((prev) => ({
-          ...prev,
-          [user]: [
-            ...(prev[user] || []),
-            message,
-          ],
-        }));
       });
 
       xmpp.on("subscribe", (data) => { // if someone subscribes to us..
@@ -195,12 +197,12 @@ const App = () => {
       });
 
       xmpp.on("unsubscribe", (data) => { // if someone removes me from their roster
-        // xmpp.unsubscribe(data.from); // remove them from ours
+        // xmpp.unsubscribe(data.from); // remove them from ours?
       });
 
       xmpp.on("roster:update", async (data) => { // roster item change
         data.roster.items.forEach((r) => {
-          setMessages((prev) => ({ ...prev, [r.jid]: [] })); // delete any messages from them
+          // setMessages((prev) => ({ ...prev, [r.jid]: [] })); // delete any messages from them
           xmpp.searchHistory({ with: r.jid, paging: { before: "" }}); // and replace
         });
 
@@ -266,9 +268,6 @@ const App = () => {
     });
   }, []);
 
-  console.log('new presence list', presence);
-  // console.log('messages', messages);
-
   // extend the roster with info from the User API, presence, etc.
   const extendedRoster = roster.map(r => {
     const user = allUsers.find(u => r.jid.includes(u.user_id));
@@ -292,7 +291,8 @@ const App = () => {
     };
   });
 
-  console.log("extended roster", extendedRoster);
+  // console.log('new presence list', presence);
+  // console.log("extended roster", extendedRoster);
 
   // find my own user from the User API
   const me = allUsers.find((u) => client.jid.match(u.user_id));
@@ -308,8 +308,7 @@ const App = () => {
     setConnected(false);
     setRoster([]);
     setPresence({});
-    setMessages({});
-    setRoomMessages({});
+    db.messages.clear();
 
     try {
       await Auth.signOut();
@@ -418,7 +417,6 @@ const App = () => {
           ? <Roster
               roster={extendedRoster}
               // presence={presence}
-              messages={messages}
               allUsers={allUsers}
               client={client}
               API_BASE={API_BASE}
@@ -428,7 +426,6 @@ const App = () => {
           : nav === 'messages'
             ? <Messages
                 roster={extendedRoster}
-                messages={messages}
                 // presence={presence}
                 allUsers={allUsers}
                 client={client}
@@ -483,10 +480,12 @@ async function getServiceConfig(hostname) {
   }
 }
 
-async function getAllMessages(client, after = "") {
-  const { complete, paging: { last } } = await client.searchHistory({ paging: { after }});
+async function getAllMessages({ client, start, after }) {
+  const paging = after ? { after } : {};
+  const { complete, paging: { last } } = await client.searchHistory({ start, paging });
+
   if (!complete) {
-    getAllMessages(client, last);
+    getAllMessages({ client, after: last });
   }
 }
 

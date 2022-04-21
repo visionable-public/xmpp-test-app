@@ -92,8 +92,6 @@ const userDisplayName = (u) => `${u.user_firstname} ${u.user_lastname} (${u.user
 
 const Roster = ({
   roster,
-  // presence,
-  messages,
   client,
   allUsers,
   API_BASE,
@@ -133,6 +131,8 @@ const Roster = ({
   // filter by search
   const filteredRoster = roster.filter(r =>
     r.name?.toLowerCase().includes(search.toLowerCase()) || r.jid?.includes(search));
+
+  const messages = {}; // TODO
 
   const chatMessages = subNav && messages[subNav.jid]
     ? messages[subNav.jid]

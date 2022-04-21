@@ -12,7 +12,7 @@ import Settings from '@mui/icons-material/Settings';
 import Logout from '@mui/icons-material/Logout';
 import Circle from '@mui/icons-material/Circle';
 
-const Profile = ({ client, me }) => {
+const Profile = ({ client, me, signOut }) => {
   const [anchorEl, setAnchorEl] = useState(null);
   const open = Boolean(anchorEl);
 
@@ -102,7 +102,7 @@ const Profile = ({ client, me }) => {
         transformOrigin={{ horizontal: 'right', vertical: 'top' }}
         anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
       >
-        <MenuItem>
+        <MenuItem disabled>
           <Avatar /> Profile
         </MenuItem>
 
@@ -120,13 +120,14 @@ const Profile = ({ client, me }) => {
 
         <Divider />
 
-        <MenuItem>
+        <MenuItem disabled>
           <ListItemIcon>
             <Settings fontSize="small" />
           </ListItemIcon>
           Settings
         </MenuItem>
-        <MenuItem>
+
+        <MenuItem onClick={signOut}>
           <ListItemIcon>
             <Logout fontSize="small" />
           </ListItemIcon>
