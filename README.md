@@ -18,7 +18,7 @@
 
 ### Offline Storage
 
-We store all chat history in an IndexedDB database. When we log in, we ask XMPP for the (Messages Archive)[https://xmpp.org/extensions/xep-0313.html] starting from the latest message we have cached.
+We store all chat history in an IndexedDB database. When we log in, we ask XMPP for the [Messages Archive](https://xmpp.org/extensions/xep-0313.html) starting from the latest message we have cached.
 
 If a user Signs Out, we clear the database. If a _different_ user logs in, we clear the database.
 
