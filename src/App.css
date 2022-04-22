@@ -31,3 +31,8 @@ div[data-amplify-authenticator] {
   display: flex;
   flex-grow: 1;
 }
+
+/* Fix that stupid create-react-app iframe overlay thing */
+body > iframe {
+  pointer-events: none;
+}

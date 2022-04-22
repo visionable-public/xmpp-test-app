@@ -24,7 +24,7 @@ ReactDOM.render(
   <React.StrictMode>
     <CssBaseline />
 
-    <Authenticator style={{ margin: "auto" }}>
+    <Authenticator>
       {({ signOut, user }) => (
         <App signOutAWS={signOut} user={user} />
       )}

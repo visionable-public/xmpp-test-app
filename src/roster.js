@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import {
+  Badge,
   Box,
   Button,
   List,
@@ -187,27 +188,58 @@ const Roster = ({
         </Box>
 
         <List className="scroll-list">
-          {filteredRoster.map((u) => (
-            <ListItem key={u.jid} disablePadding>
-              <ListItemButton onClick={() => setSubNav(u)}>
-                <ListItemAvatar>
-                  <Avatar>
-                    {u.isRoom
-                      ? <GroupsIcon />
-                      : initials(u)}
-                  </Avatar>
-                </ListItemAvatar>
+          {filteredRoster.map((u) => {
+            const status = u.isRoom ? '' : u.status;
+            const color = {
+              available: "#51b397",
+              away: "#f0a73e",
+              unavailable: "gray",
+              "in-meeting": "#ea3323",
+            }[status] || "gray";
 
-                <ListItemText
-                  primary={u.name}
-                  primaryTypographyProps={{ textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}
-                  secondary={u.user?.user_email}
-                  secondaryTypographyProps={{ textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}
-                  title={u.jid}
-                />
-              </ListItemButton>
-            </ListItem>
-          ))}
+            return (
+              <ListItem key={u.jid} disablePadding>
+                <ListItemButton onClick={() => setSubNav(u)}>
+                  <ListItemAvatar>
+                    <Badge
+                      componentsProps={{
+                        badge: {
+                          sx: {
+                            backgroundColor: color,
+                            border: "2px solid white",
+                            width: 14,
+                            height: 14,
+                            borderRadius: 7,
+                          },
+                        },
+                      }}
+                      overlap="circular"
+                      badgeContent=" "
+                      invisible={u.isRoom}
+                      variant="dot"
+                      anchorOrigin={{
+                        vertical: 'bottom',
+                        horizontal: 'right',
+                      }}
+                    >
+                      <Avatar>
+                        {u.isRoom
+                          ? <GroupsIcon />
+                          : initials(u)}
+                      </Avatar>
+                    </Badge>
+                  </ListItemAvatar>
+
+                  <ListItemText
+                    primary={u.name}
+                    primaryTypographyProps={{ textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}
+                    secondary={u.user?.user_email}
+                    secondaryTypographyProps={{ textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}
+                    title={u.jid}
+                    />
+                </ListItemButton>
+              </ListItem>
+            )})}
         </List>
       </Paper>
 

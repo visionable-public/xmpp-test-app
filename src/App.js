@@ -233,18 +233,32 @@ const App = ({ signOutAWS, user }) => {
         : r.jid;// otherwise, just show their JID
 
     // grab all of the resources that we've been given presence for this user
-    const resources = Object.values(presence)
-      .filter((p) => p.from.includes(r.jid))
-      .map((u) => u.from.split("/")?.[1]);
+    const statuses = Object.values(presence)
+      .filter((u) => u.from.includes(r.jid))
+      .filter((u) => u.type !== 'unavailable')
+      .map((u) => u.status || 'available');
+
+    const status = statuses.length === 0 // if they have no resources online
+      ? 'unavailable' // they're unavailable
+      : statuses.some((s) => s === 'in-meeting') // if _any_ resource is in a meeting
+        ? 'in-meeting' // show in-meeting
+        : statuses.every((s) => s === 'away') // if _all_ of their resources are away
+          ? 'away' // show away
+          : statuses.every((s) => s === 'available') // if _all_ of their resources are available
+            ? 'available' // show available
+            : 'available'; // otherwise, if they have other online resources, show available
 
     return {
       ...r,
       user,
-      name, 
-      resources,
+      name,
+      status,
+      statuses,
       isRoom: !!r.groups?.[0]?.includes("muc"),
     };
   });
+  window.presence = presence;
+  window.roster = extendedRoster;
 
   console.log('new presence list', presence);
   console.log("extended roster", extendedRoster);
