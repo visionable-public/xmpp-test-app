@@ -1,23 +1,23 @@
 {
   "files": {
-    "main.css": "/xmpp-test-app/static/css/main.00d24ad3.chunk.css",
-    "main.js": "/xmpp-test-app/static/js/main.572071bb.chunk.js",
-    "main.js.map": "/xmpp-test-app/static/js/main.572071bb.chunk.js.map",
+    "main.css": "/xmpp-test-app/static/css/main.8b387d8f.chunk.css",
+    "main.js": "/xmpp-test-app/static/js/main.192928b1.chunk.js",
+    "main.js.map": "/xmpp-test-app/static/js/main.192928b1.chunk.js.map",
     "runtime-main.js": "/xmpp-test-app/static/js/runtime-main.50e8eac1.js",
     "runtime-main.js.map": "/xmpp-test-app/static/js/runtime-main.50e8eac1.js.map",
     "static/css/2.b8094c5f.chunk.css": "/xmpp-test-app/static/css/2.b8094c5f.chunk.css",
-    "static/js/2.bd3395bf.chunk.js": "/xmpp-test-app/static/js/2.bd3395bf.chunk.js",
-    "static/js/2.bd3395bf.chunk.js.map": "/xmpp-test-app/static/js/2.bd3395bf.chunk.js.map",
+    "static/js/2.19bf9392.chunk.js": "/xmpp-test-app/static/js/2.19bf9392.chunk.js",
+    "static/js/2.19bf9392.chunk.js.map": "/xmpp-test-app/static/js/2.19bf9392.chunk.js.map",
     "index.html": "/xmpp-test-app/index.html",
     "static/css/2.b8094c5f.chunk.css.map": "/xmpp-test-app/static/css/2.b8094c5f.chunk.css.map",
-    "static/css/main.00d24ad3.chunk.css.map": "/xmpp-test-app/static/css/main.00d24ad3.chunk.css.map",
-    "static/js/2.bd3395bf.chunk.js.LICENSE.txt": "/xmpp-test-app/static/js/2.bd3395bf.chunk.js.LICENSE.txt"
+    "static/css/main.8b387d8f.chunk.css.map": "/xmpp-test-app/static/css/main.8b387d8f.chunk.css.map",
+    "static/js/2.19bf9392.chunk.js.LICENSE.txt": "/xmpp-test-app/static/js/2.19bf9392.chunk.js.LICENSE.txt"
   },
   "entrypoints": [
     "static/js/runtime-main.50e8eac1.js",
     "static/css/2.b8094c5f.chunk.css",
-    "static/js/2.bd3395bf.chunk.js",
-    "static/css/main.00d24ad3.chunk.css",
-    "static/js/main.572071bb.chunk.js"
+    "static/js/2.19bf9392.chunk.js",
+    "static/css/main.8b387d8f.chunk.css",
+    "static/js/main.192928b1.chunk.js"
   ]
 }
