@@ -268,7 +268,8 @@ const App = ({ signOutAWS, user }) => {
 
   const reconnect = async () => {
     console.log("reconnecting");
-    // client.config.credentials.password = user.idToken.jwtToken; // TODO
+    // client.config.credentials.password = user.signInUserSession.idToken.jwtToken;
+    client.updateConfig({ ...(client.config.credentials), password: user.signInUserSession.idToken.jwtToken });
     client.connect();
   };
 
