@@ -1,33 +1,71 @@
 import { useState } from 'react';
 import {
   Box,
+  Button,
   TextField,
   Paper,
   Stack,
-  // Divider,
-  // Dialog,
-  // DialogTitle,
-  // DialogContent,
-  // DialogActions,
+  IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
   List,
   ListItem,
   ListItemButton,
   ListItemAvatar,
   ListItemText,
   Avatar,
-  // Autocomplete,
+  Autocomplete,
 } from "@mui/material";
 import { useLiveQuery } from "dexie-react-hooks";
 
+import AddIcon from '@mui/icons-material/Add';
 import GroupsIcon from '@mui/icons-material/Groups';
 
 import Message from "./message";
 
 import db from "./db";
 
+const AddChatPrompt = ({ open, close, add, allUsers }) => {
+  const [newContact, setNewContact] = useState("");
+
+  const onAdd = () => {
+    add(newContact);
+    close();
+  }
+
+  return (
+    <Dialog open={open} onClose={close}>
+      <DialogTitle>Find a User</DialogTitle>
+
+      <DialogContent>
+        <Autocomplete
+          sx={{ width: 400, my: 1 }}
+          onChange={(_, u) => u && setNewContact(u.id)}
+          options={allUsers.map(u => ({
+            label: userDisplayName(u),
+            id: u.user_id,
+          }))}
+          renderInput={(params) => <TextField {...params} label="User" />}
+        />
+      </DialogContent>
+
+      <DialogActions>
+        <Button onClick={close}>Cancel</Button>
+        <Button onClick={onAdd}>Add</Button>
+      </DialogActions>
+    </Dialog>
+  );
+};
+
+// TODO use teh name property
+const userDisplayName = (u) => `${u.user_firstname} ${u.user_lastname} (${u.user_email})`;
+
 const Messages = ({ client, allUsers, roster, jwt, API_BASE }) => {
   const [search, setSearch] = useState("");
   const [subNav, setSubNav] = useState(null);
+  const [showAddChat, setShowAddChat] = useState(false);
 
   // pull out all of the unique IDs from all of the messages
   const tos = useLiveQuery(() => db.messages.orderBy("to").uniqueKeys()) || [];
@@ -51,12 +89,29 @@ const Messages = ({ client, allUsers, roster, jwt, API_BASE }) => {
       || s.includes(u.user?.user_email);
   });
 
+  const addChat = (uuid) => {
+    console.log("addChat", uuid);
+    const jid = `${uuid}@${client.config.server}`;
+    console.log("jid", jid);
+    // TODO
+  };
+
   return (
     <>
+      <AddChatPrompt
+        add={addChat}
+        close={() => setShowAddChat(false)}
+        open={showAddChat}
+        allUsers={allUsers}
+      />
+
       <Paper className="scroll-list-container" sx={{ width: 300 }}>
         <Box sx={{ px: 2 }}>
           <Stack direction="row" sx={{ alignItems: "center" }}>
             <h2>Chat</h2>
+            {/* <IconButton sx={{ ml: "auto" }} onClick={() => setShowAddChat(true)}> */}
+            {/*   <AddIcon fontSize="inherit" /> */}
+            {/* </IconButton> */}
           </Stack>
 
           <TextField
