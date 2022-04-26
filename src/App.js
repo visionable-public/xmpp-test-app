@@ -18,6 +18,8 @@ import SideBar from "./sidebar";
 import Roster from "./roster";
 import Messages from "./messages";
 
+import IqInbox from './inbox.ts';
+
 window.db = db;
 
 const API_BASE = "https://saas-api.visionable.one";
@@ -72,6 +74,8 @@ const App = ({ signOutAWS, user }) => {
       const jid = `${user.username}@${xmppHostname}`;
       const xmpp = await initXMPP(jid, jwt, xmppHostname);
 
+      xmpp.use(IqInbox);
+
       setClient(xmpp);
       setConnected(true);
 
@@ -93,22 +97,22 @@ const App = ({ signOutAWS, user }) => {
         setRoster(roster);
 
         // Get all of the messages up until the last one I've seen
-        const lastMessage = await db.messages.orderBy("timestamp").last();
-        getAllMessages({ client: xmpp, start: lastMessage?.timestamp });
+        // const lastMessage = await db.messages.orderBy("timestamp").last();
+        // getAllMessages({ client: xmpp, start: lastMessage?.timestamp });
 
         // get "inbox"
-        // xmpp.transport.socket.send(`<iq type='set' id='10bca'>
-        //   <inbox xmlns='erlang-solutions.com:xmpp:inbox:0' queryid='b6'>
-        //     <x xmlns='jabber:x:data' type='form'>
-        //       <field type='hidden' var='FORM_TYPE'><value>erlang-solutions.com:xmpp:inbox:0</value></field>
-        //       <field type='list-single' var='order'><value>asc</value></field>
-        //       <field type='text-single' var='hidden_read'><value>false</value></field>
-        //     </x>
-        //     <set xmlns='http://jabber.org/protocol/rsm'>
-        //       <max>50</max>
-        //     </set>
-        //   </inbox>
-        // </iq>`);
+        xmpp.transport.socket.send(`<iq type='set' id='10bca'>
+          <inbox xmlns='erlang-solutions.com:xmpp:inbox:0' queryid='b6'>
+            <x xmlns='jabber:x:data' type='form'>
+              <field type='hidden' var='FORM_TYPE'><value>erlang-solutions.com:xmpp:inbox:0</value></field>
+              <field type='list-single' var='order'><value>asc</value></field>
+              <field type='text-single' var='hidden_read'><value>false</value></field>
+            </x>
+            <set xmlns='http://jabber.org/protocol/rsm'>
+              <max>50</max>
+            </set>
+          </inbox>
+        </iq>`);
       });
 
       xmpp.on("message", (message) => {
