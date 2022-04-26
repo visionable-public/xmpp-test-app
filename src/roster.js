@@ -235,7 +235,7 @@ const Roster = ({
                     primaryTypographyProps={{ textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}
                     secondary={u.user?.user_email}
                     secondaryTypographyProps={{ textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}
-                    title={u.jid}
+                    title={u.jid + (u.activity ? " - " + u.activity : "")}
                     />
                 </ListItemButton>
               </ListItem>

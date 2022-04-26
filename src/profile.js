@@ -7,6 +7,7 @@ import IconButton from '@mui/material/IconButton';
 import ListItem from '@mui/material/ListItem';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
+import TextField from '@mui/material/ListItemText';
 
 import Settings from '@mui/icons-material/Settings';
 import Logout from '@mui/icons-material/Logout';
@@ -14,6 +15,8 @@ import Circle from '@mui/icons-material/Circle';
 
 const Profile = ({ client, me, signOut }) => {
   const [anchorEl, setAnchorEl] = useState(null);
+  // const [newActivity, setNewActivity] = useState("");
+  const [activity, setActivity] = useState(""); // TODO: get last activity
   const open = Boolean(anchorEl);
 
   const handleClick = (event) => {
@@ -27,6 +30,21 @@ const Profile = ({ client, me, signOut }) => {
   const setStatus = (status) => {
     client.sendPresence({ status });
   };
+
+  const activityPrompt = () => { // TODO: use mui
+    const text = prompt("Enter a custom message");
+    // setNewActivity(text);
+    // sendActivity();
+    client.publishActivity({ text })
+    setActivity(text);
+  }
+
+  /*
+  const sendActivity = () => {
+    client.publishActivity({ text: activity })
+    setActivity(newActivity);
+  }
+*/
 
   const statusList = [
     {
@@ -117,6 +135,16 @@ const Profile = ({ client, me, signOut }) => {
             <ListItemText primary={s.label} />
           </MenuItem>
         ))}
+
+        <MenuItem onClick={activityPrompt}>
+          {activity || <i>Custom message</i>}
+
+          {/* <TextField */}
+          {/*   label="Status message" */}
+          {/*   onChange={(e) => setNewActivity(e.target.value)} */}
+          {/*   onKeyDown={(e) => e.key === "Enter" && sendActivity()} */}
+          {/* /> */}
+        </MenuItem>
 
         <Divider />
 

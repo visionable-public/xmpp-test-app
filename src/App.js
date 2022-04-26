@@ -43,6 +43,7 @@ const App = ({ signOutAWS, user }) => {
   const [jwt, setJwt] = useState("");
   const [roster, setRoster] = useState([]);
   const [presence, setPresence] = useState({});
+  const [activities, setActivities] = useState({});
   const [incomingInvites, setIncomingInvites] = useState([]);
   const [inviteResponses, setInviteResponses] = useState({});
   const [allUsers, setAllUsers] = useState([]);
@@ -210,12 +211,11 @@ const App = ({ signOutAWS, user }) => {
         setPresence((prev) => ({ ...prev, [data.from]: data }))
       });
 
-      /*
-      xmpp.on("available", (data) => {
-        const jid = data.from.replace(/\/.*$/, "");
-        setPresence((prev) => ({ ...prev, [jid]: 'Available' }));
+      xmpp.on("activity", (data) => {
+        const { jid, activity: { text } } = data;
+        console.log("ACTIVITY", jid, text);
+        setActivities((prev) => ({ ...prev, [jid]: text }));
       });
-*/
 
       xmpp.on("*", async (type, data) => {
         console.log(type, data);
@@ -233,6 +233,11 @@ const App = ({ signOutAWS, user }) => {
       })
 
       xmpp.connect();
+
+      window.addEventListener('beforeunload', function(event) {
+        console.log('window.beforeunload');
+        xmpp.disconnect();
+      });
     } catch (e) {
       console.error("caught", e);
     }
@@ -271,11 +276,13 @@ const App = ({ signOutAWS, user }) => {
       name,
       status,
       statuses,
+      activity: activities[r.jid],
       isRoom: !!r.groups?.[0]?.includes("muc"),
     };
   });
   window.presence = presence;
   window.roster = extendedRoster;
+  window.activities = activities;
 
   console.log('new presence list', presence);
   console.log("extended roster", extendedRoster);
