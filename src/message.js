@@ -45,8 +45,7 @@ const Message = ({ client, user, API_BASE, jwt, allUsers }) => {
 
   const removeContact = async () => {
     if (user.isRoom) {
-      // TODO: bare jid
-      await client.setRoomAffiliation(user.jid, client.jid, "none");
+      await client.setRoomAffiliation(user.jid, client.config.jid, "none");
       await client.leaveRoom(user.jid);
     } else {
       await client.removeRosterItem(user.jid);
