@@ -442,16 +442,6 @@ function userFullName(user) {
         : "[No Name]";
 }
 
-async function getServiceConfig(hostname) {
-  try {
-    const res = await fetch(`https://${hostname}/config.json`);
-    return await res.json();
-  } catch(e) {
-    console.log(e);
-    alert("Error requesting configuration data for this service");
-  }
-}
-
 async function getAllMessages({ client, start, after }) {
   const paging = after ? { after } : {};
   const { complete, paging: { last } } = await client.searchHistory({ start, paging });
