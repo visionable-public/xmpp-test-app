@@ -81,7 +81,10 @@ const App = ({ signOutAWS, user }) => {
       window.client = xmpp;
 
       xmpp.on("session:started", async () => {
-        xmpp.sendPresence();
+        xmpp.updateCaps();
+        xmpp.sendPresence({
+          legacyCapabilities: xmpp.disco.getCaps() // have to enable this to get PEP notifications
+        });
         xmpp.enableKeepAlive();
         xmpp.enableCarbons();
 
@@ -91,6 +94,20 @@ const App = ({ signOutAWS, user }) => {
         // Get all of the messages up until the last one I've seen
         const lastMessage = await db.messages.orderBy("timestamp").last();
         getAllMessages({ client: xmpp, start: lastMessage?.timestamp });
+
+        // get "inbox"
+        // xmpp.transport.socket.send(`<iq type='set' id='10bca'>
+        //   <inbox xmlns='erlang-solutions.com:xmpp:inbox:0' queryid='b6'>
+        //     <x xmlns='jabber:x:data' type='form'>
+        //       <field type='hidden' var='FORM_TYPE'><value>erlang-solutions.com:xmpp:inbox:0</value></field>
+        //       <field type='list-single' var='order'><value>asc</value></field>
+        //       <field type='text-single' var='hidden_read'><value>false</value></field>
+        //     </x>
+        //     <set xmlns='http://jabber.org/protocol/rsm'>
+        //       <max>50</max>
+        //     </set>
+        //   </inbox>
+        // </iq>`);
       });
 
       xmpp.on("message", (message) => {
