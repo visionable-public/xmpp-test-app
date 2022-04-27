@@ -9,7 +9,10 @@ import '@aws-amplify/ui-react/styles.css';
 
 const Context = createContext({});
 
-const hostname = "saas.visionable.one";
+const HOSTNAME_KEY = "visionable-xmpp-hostname";
+const lastHostname = localStorage.getItem(HOSTNAME_KEY);
+const hostname = lastHostname || prompt("Enter hostname", "saas.visionable.one");
+localStorage.setItem(HOSTNAME_KEY, hostname);
 
 const AppContainer = () => {
   const [config, setConfig] = useState(null);
@@ -30,7 +33,9 @@ const AppContainer = () => {
 
   useEffect(() => configure(), []);
 
-  const value = {};
+  const value = {
+    HOSTNAME_KEY
+  };
 
   return !config
     ? null
@@ -60,5 +65,7 @@ async function getServiceConfig(hostname) {
   } catch(e) {
     console.log(e);
     alert("Error requesting configuration data for this service");
+    localStorage.removeItem(HOSTNAME_KEY);
+    window.location.reload();
   }
 }

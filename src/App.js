@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
 import * as XMPP from "stanza";
 
 import {
@@ -315,6 +315,7 @@ const App = ({ signOutAWS, user }) => {
     setRoster([]);
     setPresence({});
     db.messages.clear();
+    localStorage.removeItem("visionable-xmpp-hostname"); // grab this from context
     signOutAWS();
   };
 
