@@ -30,8 +30,8 @@ const SideBar = ({ client, me, setNav, nav, signOut }) => (
   <List sx={{
     display: "flex",
     flexDirection: "column",
-    width: "200px",
-    minWidth: "200px",
+    width: "240px",
+    minWidth: "240px",
     background: "#091c38",
     color: "white"
   }}>

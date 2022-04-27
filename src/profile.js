@@ -1,19 +1,20 @@
 import { useState } from 'react';
 import Avatar from '@mui/material/Avatar';
+import ListItemAvatar from '@mui/material/Avatar';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import Divider from '@mui/material/Divider';
-import IconButton from '@mui/material/IconButton';
 import ListItem from '@mui/material/ListItem';
 import ListItemIcon from '@mui/material/ListItemIcon';
+import ListItemButton from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
-import TextField from '@mui/material/ListItemText';
 
 import Settings from '@mui/icons-material/Settings';
 import Logout from '@mui/icons-material/Logout';
 import Circle from '@mui/icons-material/Circle';
 
 const Profile = ({ client, me, signOut }) => {
+  const [status, setStatus] = useState("available");
   const [anchorEl, setAnchorEl] = useState(null);
   // const [newActivity, setNewActivity] = useState("");
   const [activity, setActivity] = useState(""); // TODO: get last activity
@@ -27,7 +28,8 @@ const Profile = ({ client, me, signOut }) => {
     setAnchorEl(null);
   };
 
-  const setStatus = (status) => {
+  const changeStatus = (status) => {
+    setStatus(status);
     client.sendPresence({ status });
   };
 
@@ -70,11 +72,11 @@ const Profile = ({ client, me, signOut }) => {
   return (
     <>
       <ListItem disablePadding>
-        <ListItemIcon>
-          <IconButton onClick={handleClick} sx={{ ml: 0.5 }}>
-            <Avatar sx={{ width: 32, height: 32 }}>M</Avatar>
-          </IconButton>
-        </ListItemIcon>
+        <ListItemButton onClick={handleClick} sx={{ mx: 1 }}>
+          <ListItemAvatar>
+            <Avatar>{initials(me)}</Avatar>
+          </ListItemAvatar>
+        </ListItemButton>
 
         <ListItemText
           primary={me.name}
@@ -91,43 +93,9 @@ const Profile = ({ client, me, signOut }) => {
         open={open}
         onClose={handleClose}
         onClick={handleClose}
-        PaperProps={{
-          elevation: 0,
-          sx: {
-            overflow: 'visible',
-            filter: 'drop-shadow(0px 2px 8px rgba(0,0,0,0.32))',
-            mt: 1.5,
-            '& .MuiAvatar-root': {
-              width: 32,
-              height: 32,
-              ml: -0.5,
-              mr: 1,
-            },
-            '&:before': {
-              content: '""',
-              display: 'block',
-              position: 'absolute',
-              top: 0,
-              right: 14,
-              width: 10,
-              height: 10,
-              bgcolor: 'background.paper',
-              transform: 'translateY(-50%) rotate(45deg)',
-              zIndex: 0,
-            },
-          },
-        }}
-        transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-        anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
       >
-        <MenuItem disabled>
-          <Avatar /> Profile
-        </MenuItem>
-
-        <Divider />
-
         {statusList.map((s) => (
-          <MenuItem key={s.key} onClick={() => setStatus(s.key)}>
+          <MenuItem key={s.key} onClick={() => changeStatus(s.key)}>
             <ListItemIcon>
               <Circle fontSize="small" sx={{ color: s.color }} />
             </ListItemIcon>
@@ -138,12 +106,6 @@ const Profile = ({ client, me, signOut }) => {
 
         <MenuItem onClick={activityPrompt}>
           {activity || <i>Custom message</i>}
-
-          {/* <TextField */}
-          {/*   label="Status message" */}
-          {/*   onChange={(e) => setNewActivity(e.target.value)} */}
-          {/*   onKeyDown={(e) => e.key === "Enter" && sendActivity()} */}
-          {/* /> */}
         </MenuItem>
 
         <Divider />
@@ -165,5 +127,10 @@ const Profile = ({ client, me, signOut }) => {
     </>
   );
 };
+
+// TODO put this is allUsers state
+function initials(u) {
+  return u.name?.split(" ")?.slice(0, 2)?.map(n => n.substr(0, 1));
+}
 
 export default Profile;
