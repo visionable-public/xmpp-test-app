@@ -70,7 +70,9 @@ const Messages = ({ client, allUsers, roster, jwt, API_BASE }) => {
   // pull out all of the unique IDs from all of the messages
   const tos = useLiveQuery(() => db.messages.orderBy("to").uniqueKeys()) || [];
   const froms = useLiveQuery(() => db.messages.orderBy("from").uniqueKeys()) || [];
-  const jids = tos.concat(froms).filter((v, i, a) => a.indexOf(v) === i); // all unique jids
+  const jids = tos.concat(froms)
+  .filter((v, i, a) => a.indexOf(v) === i) // all unique jids
+  .filter((jid) => jid !== client.config.jid); // that aren't you
 
   const users = jids?.map(jid => { // add names
     const user = allUsers.find((u) => jid.includes(u.user_id));

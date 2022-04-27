@@ -74,7 +74,7 @@ const AddContactPrompt = ({ open, close, add, allUsers }) => {
         <Autocomplete
           sx={{ width: 400, my: 1 }}
           onChange={(_, u) => u && setNewContact(u.id)}
-          options={allUsers.map(u => ({
+          options={allUsers.map((u) => ({
             label: userDisplayName(u),
             id: u.user_id,
           }))}
@@ -143,13 +143,15 @@ const Roster = ({
     ? messages[subNav.jid]
     : [];
 
+  const allOtherUsers = allUsers.filter((u) => !client.config.jid.includes(u.user_id));
+
   return (
     <>
       <AddContactPrompt
         add={addContact}
         close={() => setShowAddContact(false)}
         open={showAddContact}
-        allUsers={allUsers}
+        allUsers={allOtherUsers}
       />
 
       <AddRoomPrompt

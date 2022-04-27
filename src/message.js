@@ -94,6 +94,8 @@ const Message = ({ client, user, API_BASE, jwt, allUsers }) => {
     scrollRef.current.scrollTop = scrollRef?.current?.scrollHeight;
   }, [messages]);
 
+  const allOtherUsers = allUsers.filter((u) => !client.config.jid.includes(u.user_id));
+
   return (
     <Stack sx={{ flexGrow: 1 }}>
       <AddUserToRoomPrompt
@@ -101,7 +103,7 @@ const Message = ({ client, user, API_BASE, jwt, allUsers }) => {
         room={user}
         open={showAddUserToRoom}
         close={() => setShowAddUserToRoom(false) }
-        allUsers={allUsers}
+        allUsers={allOtherUsers}
       />
 
       <Stack direction="row" sx={{ px: 2, background: "white", alignItems: "center" }}>
