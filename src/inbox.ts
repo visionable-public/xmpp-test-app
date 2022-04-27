@@ -1,5 +1,5 @@
 import { Agent, JXT } from 'stanza';
-import { ReceivedMessage } from 'stanza/protocol';
+import { IQ, ReceivedMessage } from 'stanza/protocol';
 
 // 1. Declare our new custom stanza extension type
 export interface InboxMessage extends ReceivedMessage {
@@ -19,7 +19,7 @@ declare module 'stanza' {
 
     // 3. Declare a new method for the StanzaJS agent
     export interface Agent {
-        getInbox(): void;
+        getInbox(): Promise<IQ>
     }
 
     // 4. Declare our event types. (Event names are the fields in AgentEvents.)

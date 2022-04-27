@@ -24,6 +24,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import db from './db';
 
 const Message = ({ client, user, API_BASE, jwt, allUsers }) => {
+  console.log("Message component", user)
   const [members, setMembers] = useState([]);
   const [message, setMessage] = useState("");
   const [showAddUserToRoom, setShowAddUserToRoom] = useState(false);
@@ -33,11 +34,13 @@ const Message = ({ client, user, API_BASE, jwt, allUsers }) => {
   const showRoomList = Boolean(roomListAnchorEl);
 
   const messages = useLiveQuery(() => 
-    db.messages.where("from").equals(user.jid).or("to").equals(user.jid).sortBy("timestamp"),
-  [user]) || [];
+    user.isRoom
+      ? db.messages.where("group").equals(user.jid).sortBy("timestamp")
+      : db.messages.where("from").equals(user.jid).or("to").equals(user.jid).sortBy("timestamp"),
+    [user], []); //  || [];
 
   const extendedMessages = messages.map((message) => { // add user info
-    const user = allUsers.find((u) => message.from.includes(u.user_id));
+    const user = allUsers.find((u) => message.from?.includes(u.user_id));
     const name = user?.name || message.from;
 
     return { ...message, user, name };

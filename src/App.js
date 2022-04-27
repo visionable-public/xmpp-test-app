@@ -96,30 +96,22 @@ const App = ({ signOutAWS, user }) => {
         const roster = (await xmpp.getRoster()).items;
         setRoster(roster);
 
-        // Get all of the messages up until the last one I've seen
-        // const lastMessage = await db.messages.orderBy("timestamp").last();
-        // getAllMessages({ client: xmpp, start: lastMessage?.timestamp });
-
         // get "inbox"
-        xmpp.transport.socket.send(`<iq type='set' id='10bca'>
-          <inbox xmlns='erlang-solutions.com:xmpp:inbox:0' queryid='b6'>
-            <x xmlns='jabber:x:data' type='form'>
-              <field type='hidden' var='FORM_TYPE'><value>erlang-solutions.com:xmpp:inbox:0</value></field>
-              <field type='list-single' var='order'><value>asc</value></field>
-              <field type='text-single' var='hidden_read'><value>false</value></field>
-            </x>
-            <set xmlns='http://jabber.org/protocol/rsm'>
-              <max>50</max>
-            </set>
-          </inbox>
-        </iq>`);
+        // const res = await xmpp.getInbox();
+        // console.log("INBOX RES", res);
+
+        // Get all of the messages up until the last one I've seen
+        const lastMessage = await db.messages.orderBy("timestamp").last();
+        getAllMessages({ client: xmpp, start: lastMessage?.timestamp });
       });
 
       xmpp.on("message", (message) => {
         if (message.type === 'meeting-invite') {
           setIncomingInvites((prev) => [...prev, message]);
-        } else if (message.type === "chat") {
-          const [from] = message.from.split("/");
+        } else if (message.type === "chat" || message.type === "groupchat") {
+          const [before, after] = message.from.split("/");
+          const group = message.type === "chat" ? null : before;
+          const from = message.type === "chat" ? before : after;
 
           db.messages.put({
             id: message.id,
@@ -127,12 +119,9 @@ const App = ({ signOutAWS, user }) => {
             to: message.to,
             body: message.body,
             type: message.type,
-            group: null,
+            group,
             timestamp: new Date(),
           }, message.id)
-        } else if (message.type === "groupchat") {
-          const [room, user] = message.from.split("/");
-          console.log("GOT A GROUPCHAT", room, user);
         }
       });
 
@@ -140,6 +129,7 @@ const App = ({ signOutAWS, user }) => {
         if (message.type === 'meeting-invite') {
           // TODO: display something in the chat
         } else if (message.type === "chat") {
+          // TODO: until acked, put a pending status
           db.messages.put({
             id: message.id,
             from: xmpp.config.jid,
@@ -149,23 +139,16 @@ const App = ({ signOutAWS, user }) => {
             group: null,
             timestamp: new Date(),
           }, message.id)
-        } else if (message.type === "groupchat") {
-          // TODO:
         }
       });
 
       xmpp.on("mam:item", (mam) => {
-        // TODO groupchat
         const message = mam.archive?.item?.message;
         const timestamp = mam.archive?.item?.delay?.timestamp;
-        if (message.type === 'chat') {
-          const { to } = message;
-          const [from] = message.from.split("/");
-          const fullUser = to?.includes(xmpp.config.jid) ? from : to;
-          if (!fullUser) {
-            console.log("NO FULL USER", message);
-            return;
-          }
+        if (message.type === "chat" || message.type === "groupchat") {
+          const [before, after] = message.from.split("/");
+          const group = message.type === "chat" ? null : before;
+          const from = message.type === "chat" ? before : after;
 
           db.messages.put({
             id: message.id,
@@ -173,25 +156,22 @@ const App = ({ signOutAWS, user }) => {
             to: message.to,
             body: message.body,
             type: message.type,
-            group: null,
-            timestamp,
+            group,
+            timestamp: new Date(),
           }, message.id)
         }
       });
 
       xmpp.on("inbox", (msg) => {
-        const message = msg.result?.forwarded?.message;
         const timestamp = msg.result?.forwarded?.delay?.stamp;
+        const message = msg.result?.forwarded?.message;
         console.log("inbox message", message)
 
-        if (message && message.type === "chat") {
-          const { to } = message;
+        if (!message) { return; }
+        const { to } = message;
+
+        if (message.type === "chat") {
           const [from] = message.from.split("/");
-          const fullUser = to?.includes(xmpp.config.jid) ? from : to;
-          if (!fullUser) {
-            console.log("NO FULL USER", message);
-            return;
-          }
 
           db.messages.put({
             id: message.id,
@@ -202,6 +182,7 @@ const App = ({ signOutAWS, user }) => {
             group: null,
             timestamp,
           }, message.id)
+        } else if (message.type === "groupchat") {
 
         }
       });

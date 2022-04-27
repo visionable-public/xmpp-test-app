@@ -17,6 +17,8 @@ import {
   IconButton,
   Menu,
   MenuItem,
+  Tabs,
+  Tab
 } from "@mui/material";
 
 import Dialog from '@mui/material/Dialog';
@@ -38,13 +40,13 @@ const AddRoomPrompt = ({ open, close, add }) => {
 
   return (
     <Dialog open={open} onClose={close}>
-      <DialogTitle>Add Room</DialogTitle>
+      <DialogTitle>Add Group</DialogTitle>
 
       <DialogContent>
         <TextField
           sx={{ width: 400, my: 1 }}
           onChange={(e) => setRoomName(e.target.value)}
-          label="Room name"
+          label="Group name"
         />
       </DialogContent>
 
@@ -103,6 +105,7 @@ const Roster = ({
   const [subNav, setSubNav] = useState(null);
   const [showAddContact, setShowAddContact] = useState(false);
   const [showAddRoom, setShowAddRoom] = useState(false);
+  const [tab, setTab] = useState(0);
 
   const [anchorEl, setAnchorEl] = useState(null);
   const showAddMenu = Boolean(anchorEl);
@@ -131,7 +134,8 @@ const Roster = ({
 
   // filter by search
   const filteredRoster = roster.filter(r =>
-    r.name?.toLowerCase().includes(search.toLowerCase()) || r.jid?.includes(search));
+    r.name?.toLowerCase().includes(search.toLowerCase()) || r.jid?.includes(search))
+  .filter(r => (tab === 0 && !r.isRoom) || (tab === 1 && r.isRoom));
 
   const messages = {}; // TODO
 
@@ -173,7 +177,7 @@ const Roster = ({
               }}
             >
               <MenuItem onClick={() => { closeAddMenu(); setShowAddContact(true)}}>Add Contact</MenuItem>
-              <MenuItem onClick={() => { closeAddMenu(); setShowAddRoom(true)}}>Add Room</MenuItem>
+              <MenuItem onClick={() => { closeAddMenu(); setShowAddRoom(true)}}>Add Group</MenuItem>
             </Menu>
           </Stack>
 
@@ -185,6 +189,13 @@ const Roster = ({
             fullWidth
             onChange={(e) => setSearch(e.target.value)}
           />
+        </Box>
+
+        <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+          <Tabs value={tab} onChange={(_, idx) => setTab(idx)} aria-label="basic tabs example">
+            <Tab label="Contacts" index={0} />
+            <Tab label="Groups" index={1} />
+          </Tabs>
         </Box>
 
         <List className="scroll-list">
