@@ -1,7 +1,8 @@
 import { Agent, JXT } from 'stanza';
+import { ReceivedMessage } from 'stanza/protocol';
 
 // 1. Declare our new custom stanza extension type
-export interface InboxMessage {
+export interface InboxMessage extends ReceivedMessage {
   result?: InboxResult;
 }
 
@@ -10,7 +11,7 @@ export interface InboxResult {
 }
 
 export interface InboxMessage {
-  message: string;
+  message?: string;
 }
 
 // 2. Begin injecting our plugin's type information into StanzaJS.
@@ -79,7 +80,6 @@ export default function (client: Agent, stanzas: JXT.Registry) {
 
     // 10. Listen for incoming inbox data and emit our own event
     client.on('message', msg => {
-      console.log("HERE", msg);
         if (msg.result) {
             client.emit('inbox', msg);
         }

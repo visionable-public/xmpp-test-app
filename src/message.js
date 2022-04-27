@@ -177,7 +177,7 @@ const Chat = ({ message, client, isRoom }) => {
     >
       <span style={{ fontSize: "0.8em" }}>
         <b>{message.name}</b>
-        <span style={{ marginLeft: "1em", color: mine ? "#eee" : "#666" }}>{message.timestamp.toLocaleString()}</span>
+        <span style={{ marginLeft: "1em", color: mine ? "#eee" : "#666" }}>{message.timestamp?.toLocaleString()}</span>
       </span>
       <br />
       {message.body}

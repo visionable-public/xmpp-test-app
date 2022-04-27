@@ -179,6 +179,33 @@ const App = ({ signOutAWS, user }) => {
         }
       });
 
+      xmpp.on("inbox", (msg) => {
+        const message = msg.result?.forwarded?.message;
+        const timestamp = msg.result?.forwarded?.delay?.stamp;
+        console.log("inbox message", message)
+
+        if (message && message.type === "chat") {
+          const { to } = message;
+          const [from] = message.from.split("/");
+          const fullUser = to?.includes(xmpp.config.jid) ? from : to;
+          if (!fullUser) {
+            console.log("NO FULL USER", message);
+            return;
+          }
+
+          db.messages.put({
+            id: message.id,
+            from,
+            to: message.to,
+            body: message.body,
+            type: message.type,
+            group: null,
+            timestamp,
+          }, message.id)
+
+        }
+      });
+
       xmpp.on("subscribe", (data) => { // if someone subscribes to us..
         xmpp.acceptSubscription(data.from); // auto accept
         xmpp.subscribe(data.from);
