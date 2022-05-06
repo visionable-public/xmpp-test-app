@@ -36,15 +36,16 @@ const Message = ({ client, user, API_BASE, jwt, allUsers }) => {
   const messages = useLiveQuery(() => 
     user.isRoom
       ? db.messages.where("group").equals(user.jid).sortBy("timestamp")
-      : db.messages.where("from").equals(user.jid).or("to").equals(user.jid).sortBy("timestamp"),
-    [user], []); //  || [];
+      : db.messages.where("from").equals(user.jid).or("to").equals(user.jid).and((m) => !m.group).sortBy("timestamp"),
+    [user], []);
 
-  const extendedMessages = messages.map((message) => { // add user info
-    const user = allUsers.find((u) => message.from?.includes(u.user_id));
-    const name = user?.name || message.from;
+  const extendedMessages = messages
+    .map((message) => { // add user info
+      const user = allUsers.find((u) => message.from?.includes(u.user_id));
+      const name = user?.name || message.from;
 
-    return { ...message, user, name };
-  });
+      return { ...message, user, name };
+    });
 
   const removeContact = async () => {
     if (user.isRoom) {
