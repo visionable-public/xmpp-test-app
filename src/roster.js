@@ -128,7 +128,6 @@ const Roster = ({
     const uuid = crypto.randomUUID();
     const jid = `${uuid}@${MUC_LIGHT_HOSTNAME}`;
     const res = await client.joinRoom(jid);
-    console.log("created room!", res);
     client.configureRoom(jid, { fields: [ { name: 'roomname', value: name } ] });
   }
 
@@ -136,12 +135,6 @@ const Roster = ({
   const filteredRoster = roster.filter(r =>
     r.name?.toLowerCase().includes(search.toLowerCase()) || r.jid?.includes(search))
   .filter(r => (tab === 0 && !r.isRoom) || (tab === 1 && r.isRoom));
-
-  const messages = {}; // TODO
-
-  const chatMessages = subNav && messages[subNav.jid]
-    ? messages[subNav.jid]
-    : [];
 
   const allOtherUsers = allUsers.filter((u) => !client.config.jid.includes(u.user_id));
 
@@ -257,7 +250,7 @@ const Roster = ({
       </Paper>
 
       <Paper className="right-section">
-        {subNav && <Message allUsers={allUsers} client={client} user={subNav} messages={chatMessages} API_BASE={API_BASE} jwt={jwt} />}
+        {subNav && <Message allUsers={allUsers} client={client} user={subNav} API_BASE={API_BASE} jwt={jwt} />}
       </Paper>
     </>
   );

@@ -59,7 +59,7 @@ const AddChatPrompt = ({ open, close, add, allUsers }) => {
   );
 };
 
-// TODO use teh name property
+// TODO use the name property
 const userDisplayName = (u) => `${u.user_firstname} ${u.user_lastname} (${u.user_email})`;
 
 const Messages = ({ client, allUsers, roster, jwt, API_BASE }) => {
@@ -70,7 +70,8 @@ const Messages = ({ client, allUsers, roster, jwt, API_BASE }) => {
   // pull out all of the unique IDs from all of the messages
   const tos = useLiveQuery(() => db.messages.orderBy("to").uniqueKeys()) || [];
   const froms = useLiveQuery(() => db.messages.orderBy("from").uniqueKeys()) || [];
-  const jids = tos.concat(froms)
+  const groups = useLiveQuery(() => db.messages.orderBy("group").uniqueKeys()) || [];
+  const jids = tos.concat(froms).concat(groups)
   .filter((v, i, a) => a.indexOf(v) === i) // all unique jids
   .filter((jid) => jid !== client.config.jid); // that aren't you
 
@@ -79,8 +80,9 @@ const Messages = ({ client, allUsers, roster, jwt, API_BASE }) => {
     const name = user?.name // user names come from all users
       || roster.find((r) => r.jid === jid)?.name // room names will be in your roster
       || jid;
+    const isRoom = groups.includes(jid);
 
-    return { jid, user, name };
+    return { jid, user, name, isRoom };
   });
 
   const filteredUsers = users?.filter((u) => { // filter by search

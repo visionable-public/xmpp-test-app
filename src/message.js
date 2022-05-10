@@ -24,7 +24,6 @@ import { useLiveQuery } from "dexie-react-hooks";
 import db from './db';
 
 const Message = ({ client, user, API_BASE, jwt, allUsers }) => {
-  console.log("Message component", user)
   const [members, setMembers] = useState([]);
   const [message, setMessage] = useState("");
   const [showAddUserToRoom, setShowAddUserToRoom] = useState(false);
