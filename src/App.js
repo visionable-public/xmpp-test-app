@@ -347,29 +347,6 @@ const App = ({ signOutAWS, user }) => {
   const getMUCLightRooms = async () => {
     const res = await client.getDiscoItems(MUC_LIGHT_HOSTNAME);
   }
-
-  const uploadFile = (e) => {
-    Array.from(e.target.files).forEach(async (f) => {
-      const { name, size, type: mediaType } = f; // TODO files with spaces in name fail
-      console.log('file', name, size, mediaType);
-      const service = await client.getUploadService();
-      console.log('service', service);
-      const slot = await client.getUploadSlot(service.jid, { name, size, mediaType })
-      console.log('slot', slot);
-      const { download: downloadUrl, upload: { url: uploadUrl } } = slot;
-      console.log('got urls', downloadUrl, uploadUrl);
-      const res = await fetch(uploadUrl, {
-        method: "PUT",
-        body: f,
-        headers: { "x-amz-acl": "public-read" },
-      });
-      console.log('res', res);
-
-      if (to) { // send notification
-        client.sendMessage({ to, body: downloadUrl, type: 'file-upload' });
-      }
-    })
-  }
 */
 
   if (!client) {

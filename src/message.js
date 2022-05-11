@@ -18,8 +18,10 @@ import DialogTitle from '@mui/material/DialogTitle';
 import GroupAddIcon from '@mui/icons-material/GroupAdd';
 import DeleteIcon from "@mui/icons-material/Delete";
 import VideoCameraFrontIcon from '@mui/icons-material/VideoCameraFront';
+import AttachFileIcon from '@mui/icons-material/AttachFile';
 import { blue } from "@mui/material/colors";
 
+import Linkify from 'react-linkify';
 import { useLiveQuery } from "dexie-react-hooks";
 import db from './db';
 
@@ -28,6 +30,7 @@ const Message = ({ client, user, API_BASE, jwt, allUsers }) => {
   const [message, setMessage] = useState("");
   const [showAddUserToRoom, setShowAddUserToRoom] = useState(false);
   const scrollRef = useRef(null);
+  const fileRef = useRef(null);
 
   const [roomListAnchorEl, setRoomListAnchorEl] = useState(null);
   const showRoomList = Boolean(roomListAnchorEl);
@@ -65,6 +68,19 @@ const Message = ({ client, user, API_BASE, jwt, allUsers }) => {
     client.sendMessage({ to: user.jid, body: message, type });
     setMessage("");
   };
+
+  const attachFile = async (e) => {
+    // upload all the files and get their URLs
+    const urls = await upload(e, client);
+    console.log('urls', urls);
+
+    // send out the notifications
+    urls.forEach((url) => {
+      const type = user.isRoom ? 'groupchat' : 'chat';
+      client.sendMessage({ to: user.jid, body: url, type });
+
+    });
+  }
 
   const invite = async () => {
     const body = await createMeeting(API_BASE, jwt);
@@ -151,10 +167,21 @@ const Message = ({ client, user, API_BASE, jwt, allUsers }) => {
           sx={{ flexGrow: 1 }}
           placeholder="Send a message..."
           onKeyPress={(e) => e.key === 'Enter' && sendMessage() }
-          InputProps={{ endAdornment: <Button onClick={sendMessage}>Send</Button> }}
-        />
+          InputProps={{ endAdornment: <>
+            <IconButton style={{ flexShrink: "0" }} onClick={() => fileRef.current.click()}>
+              <AttachFileIcon fontSize="inherit" />
 
-        {/* <Button variant="primary" onClick={sendMessage}>Send</Button> */}
+              <input
+                type="file"
+                style={{ display: "none" }}
+                ref={fileRef}
+                onChange={attachFile}
+                />
+            </IconButton>
+
+            <Button onClick={sendMessage}>Send</Button>
+          </>}}
+        />
       </Stack>
     </Stack>
   );
@@ -182,10 +209,16 @@ const Chat = ({ message, client, isRoom }) => {
     >
       <span style={{ fontSize: "0.8em" }}>
         <b>{message.name}</b>
-        <span style={{ marginLeft: "1em", color: mine ? "#eee" : "#666" }}>{message.timestamp?.toLocaleString()}</span>
+          <span style={{ marginLeft: "1em", color: mine ? "#eee" : "#666" }}>{message.timestamp?.toLocaleString()}</span>
       </span>
       <br />
-      {message.body}
+      <Linkify componentDecorator={(decoratedHref, decoratedText, key) => (
+        <a target="blank" href={decoratedHref} key={key} style={{ color: "inherit" }}>
+          {decoratedText}
+        </a>
+      )}>
+        {message.body}
+      </Linkify>
     </Box>
   );
 }
@@ -240,5 +273,25 @@ const AddUserToRoomPrompt = ({ open, close, allUsers, client, room }) => {
     </Dialog>
   );
 }
+
+const upload = async (e, client) => {
+  return await Promise.all(Array.from(e.target.files).map(async (f) => {
+    const { name, size, type: mediaType } = f; // TODO files with spaces in name fail
+    // console.log('file', name, size, mediaType);
+    const service = await client.getUploadService();
+    // console.log('service', service);
+    const slot = await client.getUploadSlot(service.jid, { name, size, mediaType })
+    // console.log('slot', slot);
+    const { download: downloadUrl, upload: { url: uploadUrl } } = slot;
+    // console.log('got urls', downloadUrl, uploadUrl);
+    await fetch(uploadUrl, {
+      method: "PUT",
+      body: f,
+      headers: { "x-amz-acl": "public-read" },
+    });
+    // console.log('res', res);
+    return downloadUrl;
+  }));
+};
 
 export default Message;
