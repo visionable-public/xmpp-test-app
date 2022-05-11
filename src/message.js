@@ -22,6 +22,7 @@ import AttachFileIcon from '@mui/icons-material/AttachFile';
 import { blue } from "@mui/material/colors";
 
 import Linkify from 'react-linkify';
+import { ReactTinyLink } from 'react-tiny-link'
 import { useLiveQuery } from "dexie-react-hooks";
 import db from './db';
 
@@ -217,6 +218,10 @@ const Chat = ({ message, client, isRoom }) => {
           {decoratedText}
         </a>
       )}>
+        {isImage(message.body) && <div>
+          <img src={message.body} style={{ maxHeight: "50vh", maxWidth: "70%" }} />
+        </div>}
+
         {message.body}
       </Linkify>
     </Box>
@@ -295,3 +300,20 @@ const upload = async (e, client) => {
 };
 
 export default Message;
+
+function isUrl(string) {
+  let url;
+  
+  try {
+    url = new URL(string);
+  } catch (_) {
+    return false;  
+  }
+
+  return url.protocol === "http:" || url.protocol === "https:";
+}
+
+function isImage(url) {
+  return /\.(jpg|jpeg|png|webp|avif|gif|svg)$/.test(url);
+}
+
