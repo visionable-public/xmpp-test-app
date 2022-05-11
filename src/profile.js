@@ -13,11 +13,15 @@ import Settings from '@mui/icons-material/Settings';
 import Logout from '@mui/icons-material/Logout';
 import Circle from '@mui/icons-material/Circle';
 
+import SettingsDialog from './settings';
+
 const Profile = ({ client, me, signOut }) => {
   const [status, setStatus] = useState("available");
   const [anchorEl, setAnchorEl] = useState(null);
   // const [newActivity, setNewActivity] = useState("");
   const [activity, setActivity] = useState(""); // TODO: get last activity
+  const [showSettings, setShowSettings] = useState(false);
+
   const open = Boolean(anchorEl);
 
   const handleClick = (event) => {
@@ -110,7 +114,7 @@ const Profile = ({ client, me, signOut }) => {
 
         <Divider />
 
-        <MenuItem disabled>
+        <MenuItem onClick={() => {setShowSettings(true)}}>
           <ListItemIcon>
             <Settings fontSize="small" />
           </ListItemIcon>
@@ -124,6 +128,8 @@ const Profile = ({ client, me, signOut }) => {
           Logout
         </MenuItem>
       </Menu>
+
+      <SettingsDialog open={showSettings} onClose={() => setShowSettings(false)} client={client} me={me} />
     </>
   );
 };
