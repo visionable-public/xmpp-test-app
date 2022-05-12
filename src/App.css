@@ -36,3 +36,21 @@ div[data-amplify-authenticator] {
 body > iframe {
   pointer-events: none;
 }
+
+/* Amplify */
+[data-amplify-authenticator] {
+  --amplify-components-button-primary-color: white;
+  --amplify-components-button-primary-background-color: #0F59BA;
+  --amplify-components-button-primary-hover-background-color: #0F59BA;
+
+  --amplify-components-authenticator-form-padding: 1em 0;
+  --amplify-components-authenticator-router-border-width: 0;
+  --amplify-components-authenticator-router-box-shadow: none;
+  --amplify-components-authenticator-container-width-max: 400px;
+  --amplify-components-fieldset-gap: 50px;
+}
+
+[data-amplify-authenticator] [data-amplify-footer] {
+  text-align: left !important;
+}
+

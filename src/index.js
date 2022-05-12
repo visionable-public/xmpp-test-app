@@ -41,7 +41,26 @@ const AppContainer = () => {
     ? null
     : (
       <Context.Provider value={value}>
-        <Authenticator>
+        <Authenticator
+          components={{
+            Header() {
+              return (
+                <div style={{ textAlign: "center", marginBottom: "2em" }}>
+                  <img
+                    alt="Visionable logo"
+                    style={{ maxWidth: "300px" }}
+                    src="https://v3.visionable.io/images/visionable-logo.svg" />
+                </div>
+              );
+            }
+          }}
+          signUpAttributes={[
+            'family_name',
+            'given_name',
+            'updated_at',
+          ]}
+          loginMechanisms={['email']}
+        >
           {({ signOut, user }) => (
             <App signOutAWS={signOut} user={user} />
           )}

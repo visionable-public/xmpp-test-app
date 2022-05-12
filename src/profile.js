@@ -16,7 +16,7 @@ import Circle from '@mui/icons-material/Circle';
 import SettingsDialog from './settings';
 
 const Profile = ({ client, me, signOut }) => {
-  const [status, setStatus] = useState("available");
+  const [, setStatus] = useState("available");
   const [anchorEl, setAnchorEl] = useState(null);
   // const [newActivity, setNewActivity] = useState("");
   const [activity, setActivity] = useState(""); // TODO: get last activity
