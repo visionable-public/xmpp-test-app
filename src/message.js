@@ -55,7 +55,7 @@ const Message = ({ client, user, API_BASE, jwt, allUsers }) => {
     attachFile(files);
   };
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop });
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop, noClick: true, noKeyboard: true });
 
   const messages = useLiveQuery(() => 
     user.isRoom
@@ -130,7 +130,6 @@ const Message = ({ client, user, API_BASE, jwt, allUsers }) => {
         close={() => setShowAddUserToRoom(false) }
         allUsers={allOtherUsers}
       />
-      <input {...getInputProps()} />
 
       <Backdrop open={isDragActive} sx={{ color: "white" }}><h3>Drop files to upload</h3></Backdrop>
 
