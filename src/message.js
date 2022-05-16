@@ -126,7 +126,7 @@ const Message = ({ client, user, API_BASE, jwt, allUsers }) => {
       <Stack direction="row" sx={{ px: 2, background: "white", alignItems: "center" }}>
         <h2>{user.name}</h2>
 
-        <IconButton sx={{ ml: "auto" }} onClick={removeContact}>
+        <IconButton sx={{ ml: "auto" }} onClick={removeContact} title={user.isRoom ? "Leave Group" : "Remove Contact"}>
           <DeleteIcon fontSize="inherit" />
         </IconButton>
 
@@ -219,10 +219,12 @@ const Chat = ({ message, client, isRoom }) => {
         </a>
       )}>
         {isImage(message.body) && <div>
-          <img src={message.body} style={{ maxHeight: "50vh", maxWidth: "70%" }} />
+          <a href={message.body} target="_blank" rel="noreferrer">
+            <img src={message.body} alt="" style={{ maxHeight: "50vh", maxWidth: "70%" }} />
+          </a>
         </div>}
 
-        {message.body}
+        {!isImage(message.body) && message.body}
       </Linkify>
     </Box>
   );
