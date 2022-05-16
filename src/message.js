@@ -8,8 +8,10 @@ import {
   Menu,
   MenuItem,
   Divider,
+  Backdrop,
 } from "@mui/material";
 import { useState, useEffect, useRef } from "react";
+import { useDropzone } from 'react-dropzone'
 
 import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
@@ -22,7 +24,7 @@ import AttachFileIcon from '@mui/icons-material/AttachFile';
 import { blue } from "@mui/material/colors";
 
 import Linkify from 'react-linkify';
-import { ReactTinyLink } from 'react-tiny-link'
+// import { ReactTinyLink } from 'react-tiny-link'
 import { useLiveQuery } from "dexie-react-hooks";
 import db from './db';
 
@@ -35,6 +37,25 @@ const Message = ({ client, user, API_BASE, jwt, allUsers }) => {
 
   const [roomListAnchorEl, setRoomListAnchorEl] = useState(null);
   const showRoomList = Boolean(roomListAnchorEl);
+
+  const attachFile = async (files) => {
+    // upload all the files and get their URLs
+    const urls = await upload(files, client);
+    console.log('urls', urls);
+
+    // send out the notifications
+    urls.forEach((url) => {
+      const type = user.isRoom ? 'groupchat' : 'chat';
+      client.sendMessage({ to: user.jid, body: url, type });
+    });
+  };
+
+  const onDrop = (files) => {
+    console.log("dropped files", files);
+    attachFile(files);
+  };
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop });
 
   const messages = useLiveQuery(() => 
     user.isRoom
@@ -70,19 +91,6 @@ const Message = ({ client, user, API_BASE, jwt, allUsers }) => {
     setMessage("");
   };
 
-  const attachFile = async (e) => {
-    // upload all the files and get their URLs
-    const urls = await upload(e, client);
-    console.log('urls', urls);
-
-    // send out the notifications
-    urls.forEach((url) => {
-      const type = user.isRoom ? 'groupchat' : 'chat';
-      client.sendMessage({ to: user.jid, body: url, type });
-
-    });
-  }
-
   const invite = async () => {
     const body = await createMeeting(API_BASE, jwt);
     if (body.uuid) {
@@ -114,7 +122,7 @@ const Message = ({ client, user, API_BASE, jwt, allUsers }) => {
   const allOtherUsers = allUsers.filter((u) => !client.config.jid.includes(u.user_id));
 
   return (
-    <Stack sx={{ flexGrow: 1 }}>
+    <Stack sx={{ flexGrow: 1 }} {...getRootProps()}>
       <AddUserToRoomPrompt
         client={client}
         room={user}
@@ -122,6 +130,9 @@ const Message = ({ client, user, API_BASE, jwt, allUsers }) => {
         close={() => setShowAddUserToRoom(false) }
         allUsers={allOtherUsers}
       />
+      <input {...getInputProps()} />
+
+      <Backdrop open={isDragActive} sx={{ color: "white" }}><h3>Drop files to upload</h3></Backdrop>
 
       <Stack direction="row" sx={{ px: 2, background: "white", alignItems: "center" }}>
         <h2>{user.name}</h2>
@@ -176,7 +187,7 @@ const Message = ({ client, user, API_BASE, jwt, allUsers }) => {
                 type="file"
                 style={{ display: "none" }}
                 ref={fileRef}
-                onChange={attachFile}
+                onChange={(e) => attachFile(e.target.files)}
                 />
             </IconButton>
 
@@ -281,8 +292,8 @@ const AddUserToRoomPrompt = ({ open, close, allUsers, client, room }) => {
   );
 }
 
-const upload = async (e, client) => {
-  return await Promise.all(Array.from(e.target.files).map(async (f) => {
+const upload = async (files, client) => {
+  return await Promise.all(Array.from(files).map(async (f) => {
     const { name, size, type: mediaType } = f; // TODO files with spaces in name fail
     // console.log('file', name, size, mediaType);
     const service = await client.getUploadService();
