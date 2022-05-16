@@ -1,6 +1,7 @@
 import {
   Box,
   Button,
+  Card,
   Stack,
   TextField,
   IconButton,
@@ -21,6 +22,7 @@ import GroupAddIcon from '@mui/icons-material/GroupAdd';
 import DeleteIcon from "@mui/icons-material/Delete";
 import VideoCameraFrontIcon from '@mui/icons-material/VideoCameraFront';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
+import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import { blue } from "@mui/material/colors";
 
 import Linkify from 'react-linkify';
@@ -216,6 +218,7 @@ const Chat = ({ message, client, isRoom }) => {
         borderRadius: 2,
         marginLeft: mine ? "auto" : 0,
         marginRight: mine ? 0 : "auto",
+        wordBreak: "break-all",
       }}
     >
       <span style={{ fontSize: "0.8em" }}>
@@ -234,7 +237,17 @@ const Chat = ({ message, client, isRoom }) => {
           </a>
         </div>}
 
-        {!isImage(message.body) && message.body}
+        {isFile(message.body) && !isImage(message.body) && (
+          <a href={message.body} target="_blank" rel="noreferrer" style={{ textDecoration: "none" }}>
+            <Card sx={{ background: "#eee", p: 1, mt: 1 }}>
+              <Stack direction="row">
+                <FileDownloadIcon sx={{ mr: 1 }} />{nameFromUrl(message.body)}
+              </Stack>
+            </Card>
+          </a>
+        )}
+
+        {!isImage(message.body) && !isFile(message.body) && message.body}
       </Linkify>
     </Box>
   );
@@ -294,19 +307,14 @@ const AddUserToRoomPrompt = ({ open, close, allUsers, client, room }) => {
 const upload = async (files, client) => {
   return await Promise.all(Array.from(files).map(async (f) => {
     const { name, size, type: mediaType } = f; // TODO files with spaces in name fail
-    // console.log('file', name, size, mediaType);
     const service = await client.getUploadService();
-    // console.log('service', service);
     const slot = await client.getUploadSlot(service.jid, { name, size, mediaType })
-    // console.log('slot', slot);
     const { download: downloadUrl, upload: { url: uploadUrl } } = slot;
-    // console.log('got urls', downloadUrl, uploadUrl);
     await fetch(uploadUrl, {
       method: "PUT",
       body: f,
       headers: { "x-amz-acl": "public-read" },
     });
-    // console.log('res', res);
     return downloadUrl;
   }));
 };
@@ -325,7 +333,16 @@ function isUrl(string) {
   return url.protocol === "http:" || url.protocol === "https:";
 }
 
+function isFile(string) {
+  return isUrl(string) && string.match(/amazonaws.*fileshare/);
+}
+
 function isImage(url) {
   return /\.(jpg|jpeg|png|webp|avif|gif|svg)$/.test(url);
+}
+
+function nameFromUrl(url) {
+  const parts = url.split("/");
+  return parts[parts.length - 1];
 }
 
