@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import * as XMPP from "stanza";
 
 import {
@@ -17,6 +17,7 @@ import "./App.css";
 import SideBar from "./sidebar";
 import Roster from "./roster";
 import Messages from "./messages";
+import { Auth } from "aws-amplify";
 
 import IqInbox from './inbox.ts';
 
@@ -86,6 +87,7 @@ const App = ({ signOutAWS, user }) => {
       window.client = xmpp;
 
       xmpp.on("session:started", async () => {
+        console.log("session:started");
         xmpp.updateCaps();
         xmpp.sendPresence({
           legacyCapabilities: xmpp.disco.getCaps() // have to enable this to get PEP notifications
@@ -302,12 +304,13 @@ const App = ({ signOutAWS, user }) => {
   // find my own user from the User API
   const me = allUsers.find((u) => client.jid.match(u.user_id)) || {};
 
-  const reconnect = async () => {
-    console.log("reconnecting");
+  const reconnect = useCallback(async () => {
     // client.config.credentials.password = user.signInUserSession.idToken.jwtToken;
-    client.updateConfig({ ...(client.config.credentials), password: user.signInUserSession.idToken.jwtToken });
+    const password = Auth.currentSession.idToken.jwtToken;
+    client.updateConfig({ ...(client.config.credentials), password });
+    console.log("reconnecting. password:", password);
     client.connect();
-  };
+  }, [client]);
 
   const signOut = async () => {
     client.disconnect();

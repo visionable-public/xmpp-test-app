@@ -18,6 +18,7 @@ import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
+import CircularProgress from '@mui/material/CircularProgress';
 import GroupAddIcon from '@mui/icons-material/GroupAdd';
 import DeleteIcon from "@mui/icons-material/Delete";
 import VideoCameraFrontIcon from '@mui/icons-material/VideoCameraFront';
@@ -33,6 +34,7 @@ import db from './db';
 const Message = ({ client, user, API_BASE, jwt, allUsers }) => {
   const [members, setMembers] = useState([]);
   const [message, setMessage] = useState("");
+  const [uploading, setUploading] = useState(false);
   const [showAddUserToRoom, setShowAddUserToRoom] = useState(false);
   const scrollRef = useRef(null);
   const fileRef = useRef(null);
@@ -41,15 +43,21 @@ const Message = ({ client, user, API_BASE, jwt, allUsers }) => {
   const showRoomList = Boolean(roomListAnchorEl);
 
   const attachFile = async (files) => {
+    setUploading(true);
     // upload all the files and get their URLs
     const urls = await upload(files, client);
     console.log('urls', urls);
 
     // send out the notifications
     urls.forEach((url) => {
-      const type = user.isRoom ? 'groupchat' : 'chat';
-      client.sendMessage({ to: user.jid, body: url, type });
+      if (url) {
+        const type = user.isRoom ? 'groupchat' : 'chat';
+        client.sendMessage({ to: user.jid, body: url, type });
+      } else {
+        console.log("upload failed");
+      }
     });
+    setUploading(false);
   };
 
   const onDrop = (files) => {
@@ -181,17 +189,18 @@ const Message = ({ client, user, API_BASE, jwt, allUsers }) => {
           placeholder="Send a message..."
           onKeyPress={(e) => e.key === 'Enter' && sendMessage() }
           InputProps={{ endAdornment: <>
-            <IconButton style={{ flexShrink: "0" }} onClick={() => fileRef.current.click()}>
-              <AttachFileIcon fontSize="inherit" />
-
-              <input
-                type="file"
-                style={{ display: "none" }}
-                ref={fileRef}
-                onChange={(e) => attachFile(e.target.files)}
-                />
-            </IconButton>
-
+            {uploading
+              ? <CircularProgress />
+              : <IconButton style={{ flexShrink: "0" }} onClick={() => fileRef.current.click()}>
+                <AttachFileIcon fontSize="inherit" />
+                <input
+                  disabled={uploading}
+                  type="file"
+                  style={{ display: "none" }}
+                  ref={fileRef}
+                  onChange={(e) => attachFile(e.target.files)}
+                  />
+              </IconButton>}
             <Button onClick={sendMessage}>Send</Button>
           </>}}
         />
@@ -307,15 +316,21 @@ const AddUserToRoomPrompt = ({ open, close, allUsers, client, room }) => {
 const upload = async (files, client) => {
   return await Promise.all(Array.from(files).map(async (f) => {
     const { name, size, type: mediaType } = f; // TODO files with spaces in name fail
+    console.log("here", name, size, mediaType);
     const service = await client.getUploadService();
     const slot = await client.getUploadSlot(service.jid, { name, size, mediaType })
     const { download: downloadUrl, upload: { url: uploadUrl } } = slot;
-    await fetch(uploadUrl, {
-      method: "PUT",
-      body: f,
-      headers: { "x-amz-acl": "public-read" },
-    });
-    return downloadUrl;
+    console.log("uploadUrl", uploadUrl);
+    try {
+      await fetch(uploadUrl, {
+        method: "PUT",
+        body: f,
+        headers: { "x-amz-acl": "public-read" },
+      });
+      return downloadUrl;
+    } catch(e) {
+      return null;
+    }
   }));
 };
 
