@@ -62,7 +62,7 @@ const AppContainer = () => {
           loginMechanisms={['email']}
         >
           {({ signOut, user }) => (
-            <App signOutAWS={signOut} user={user} />
+            <App signOutAWS={signOut} user={user} hostname={hostname} />
           )}
         </Authenticator>
       </Context.Provider>

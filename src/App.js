@@ -23,7 +23,6 @@ import IqInbox from './inbox.ts';
 
 window.db = db;
 
-const API_BASE = "https://saas-api.visionable.one";
 const PROTOCOL = "wss";
 const PORT = "5443";
 const ENDPOINT = "ws-xmpp";
@@ -41,7 +40,7 @@ const initXMPP = async (jid, password, hostname) =>
     },
   });
 
-const App = ({ signOutAWS, user }) => {
+const App = ({ signOutAWS, user, hostname }) => {
   const [client, setClient] = useState(null);
   const [jwt, setJwt] = useState("");
   const [roster, setRoster] = useState([]);
@@ -52,11 +51,13 @@ const App = ({ signOutAWS, user }) => {
   const [allUsers, setAllUsers] = useState([]);
   const [nav, setNav] = useState("contacts");
   const [connected, setConnected] = useState(false);
-  const [server] = useState("saas.visionable.one");
+  const [server] = useState(hostname);
 
   const [serviceName, ...[domain]] = server.split(/\.(.*)/s); // split out the serviceName from the rest of the host
   const xmppHostname = `${serviceName}-msg.${domain}`; // e.g. saas-msg.visionable.one
   const mucHostname = `muclight.${xmppHostname}`; // e.g. muclight.saas-msg.visionable.one
+
+  const apiBase = `https://${serviceName}-api.${domain}`; // e.g. saas-api.visionable.one
 
   const signIn = async () => {
     if (client) {
@@ -80,7 +81,7 @@ const App = ({ signOutAWS, user }) => {
       setClient(xmpp);
       setConnected(true);
 
-      const cognitoUsers = await getAllUsers(jwt);
+      const cognitoUsers = await getAllUsers(jwt, apiBase);
       const extendedUsers = cognitoUsers.map((u) => ({ ...u, name: userFullName(u) }));
       setAllUsers(extendedUsers);
 
@@ -384,7 +385,7 @@ const App = ({ signOutAWS, user }) => {
             // presence={presence}
             allUsers={allUsers}
             client={client}
-            API_BASE={API_BASE}
+            API_BASE={apiBase}
             MUC_LIGHT_HOSTNAME={mucHostname}
             jwt={jwt}
             />
@@ -394,7 +395,7 @@ const App = ({ signOutAWS, user }) => {
               // presence={presence}
               allUsers={allUsers}
               client={client}
-              API_BASE={API_BASE}
+              API_BASE={apiBase}
               MUC_LIGHT_HOSTNAME={mucHostname}
               jwt={jwt}
               />
@@ -420,8 +421,8 @@ const IncomingInvites = ({ accept, reject, invites, responses }) =>
     </Dialog>
   ));
 
-const getAllUsers = async (jwt) => {
-  const res = await fetch(`${API_BASE}/api/user`, { headers: { Authorization: jwt } });
+const getAllUsers = async (jwt, apiBase) => {
+  const res = await fetch(`${apiBase}/api/user`, { headers: { Authorization: jwt } });
   return res.ok ? res.json() : [];
 }
 
