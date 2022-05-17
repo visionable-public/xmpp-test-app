@@ -26,7 +26,7 @@ const items = [
   },
 ]
 
-const SideBar = ({ client, me, setNav, nav, signOut }) => (
+const SideBar = ({ client, me, setNav, nav, signOut, hostname }) => (
   <List sx={{
     display: "flex",
     flexDirection: "column",
@@ -65,6 +65,10 @@ const SideBar = ({ client, me, setNav, nav, signOut }) => (
     {/*     </ListItemText> */}
     {/*   </ListItemButton> */}
     {/* </ListItem> */}
+
+    <ListItem sx={{ mt: "auto", justifyContent: "center", color: "#bbb" }}>
+      {hostname}
+    </ListItem>
   </List>
 );
 

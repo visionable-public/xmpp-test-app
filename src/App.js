@@ -209,7 +209,7 @@ const App = ({ signOutAWS, user, hostname }) => {
 
       // if someone adds you to a room, auto accept it
       xmpp.on("muc:invite", (data) => {
-        client.joinRoom(data.room);
+        xmpp.joinRoom(data.room);
       });
 
       // created or added to a room
@@ -314,11 +314,11 @@ const App = ({ signOutAWS, user, hostname }) => {
   }, [client]);
 
   const signOut = async () => {
+    db.messages.clear();
     client.disconnect();
     setConnected(false);
     setRoster([]);
     setPresence({});
-    db.messages.clear();
     localStorage.removeItem("visionable-xmpp-hostname"); // grab this from context
     signOutAWS();
   };
@@ -361,7 +361,7 @@ const App = ({ signOutAWS, user, hostname }) => {
 
   return (
     <div className="App">
-      <SideBar nav={nav} setNav={setNav} signOut={signOut} client={client} me={me} />
+      <SideBar nav={nav} setNav={setNav} signOut={signOut} client={client} me={me} hostname={hostname} />
 
       <Snackbar
         onClick={reconnect}

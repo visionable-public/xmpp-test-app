@@ -284,7 +284,7 @@ const AddUserToRoomPrompt = ({ open, close, allUsers, client, room }) => {
   const [user, setUser] = useState("");
 
   const onAdd = () => {
-    const jid = `${user}@saas-msg.visionable.one`; // TODO: use constant
+    const jid = `${user}@${client.config.server}`;
     client.setRoomAffiliation(room.jid, jid, "member")
     close();
   }
