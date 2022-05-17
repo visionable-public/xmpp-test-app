@@ -104,8 +104,17 @@ const App = ({ signOutAWS, user, hostname }) => {
         // console.log("INBOX RES", res);
 
         // Get all of the messages up until the last one I've seen
-        const lastMessage = await db.messages.orderBy("timestamp").last();
-        getAllMessages({ client: xmpp, start: lastMessage?.timestamp });
+        // const lastMessage = await db.messages.orderBy("timestamp").last();
+        // getAllMessages({ client: xmpp, start: lastMessage?.timestamp });
+
+        // Get the last few messages for each of our roster items
+        roster.forEach((r) => {
+          if (r.groups.length) {
+            xmpp.searchHistory({ to: r.jid, paging: { before: "" }}); // 'to' for MUCs
+          } else {
+            xmpp.searchHistory({ with: r.jid, paging: { before: "" }});
+          }
+        });
       });
 
       xmpp.on("message", (message) => {
@@ -209,7 +218,9 @@ const App = ({ signOutAWS, user, hostname }) => {
 
       // if someone adds you to a room, auto accept it
       xmpp.on("muc:invite", (data) => {
-        xmpp.joinRoom(data.room);
+        setTimeout(() => {
+          xmpp.joinRoom(data.room);
+        }, 1000);
       });
 
       // created or added to a room
