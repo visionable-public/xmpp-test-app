@@ -29,6 +29,7 @@ import AddIcon from '@mui/icons-material/Add';
 import GroupsIcon from '@mui/icons-material/Groups';
 
 import Message from './message';
+import Contact from './contact';
 
 const AddRoomPrompt = ({ open, close, add }) => {
   const [roomName, setRoomName] = useState("");
@@ -107,16 +108,26 @@ const Roster = ({
   const [showAddRoom, setShowAddRoom] = useState(false);
   const [tab, setTab] = useState(0);
 
-  const [anchorEl, setAnchorEl] = useState(null);
-  const showAddMenu = Boolean(anchorEl);
+  const [menuAnchorEl, setMenuAnchorEl] = useState(null);
+  const showAddMenu = Boolean(menuAnchorEl);
+
+  const [profileAnchorEl, setProfileAnchorEl] = useState(null);
+  const [focusedUser, setFocusedUser] = useState(null);
 
   const openAddMenu = (event) => {
-    setAnchorEl(event.currentTarget);
+    setMenuAnchorEl(event.currentTarget);
   };
 
   const closeAddMenu = () => {
-    setAnchorEl(null);
+    setMenuAnchorEl(null);
   };
+
+  const openContact = (event, user) => {
+    console.log('here', user);
+    event.stopPropagation();
+    setFocusedUser(user);
+    setProfileAnchorEl(event.currentTarget);
+  }
 
   const addContact = (uuid) => {
     const jid = `${uuid}@${client.config.server}`;
@@ -153,6 +164,9 @@ const Roster = ({
         open={showAddRoom}
       />
 
+      {profileAnchorEl && focusedUser &&
+        <Contact user={focusedUser} anchorEl={profileAnchorEl} onClose={() => setProfileAnchorEl(null)}/>}
+
       <Paper className="scroll-list-container" sx={{ width: 300 }}>
         <Box sx={{ px: 2 }}>
           <Stack direction="row" sx={{ alignItems: "center" }}>
@@ -164,7 +178,7 @@ const Roster = ({
 
             <Menu
               id="basic-menu"
-              anchorEl={anchorEl}
+              anchorEl={menuAnchorEl}
               open={showAddMenu}
               onClose={closeAddMenu}
               MenuListProps={{
@@ -205,7 +219,7 @@ const Roster = ({
 
             return (
               <ListItem key={u.jid} disablePadding>
-                <ListItemButton onClick={() => setSubNav(u)}>
+                <ListItemButton onClick={(e) => setSubNav(u)}>
                   <ListItemAvatar>
                     <Badge
                       componentsProps={{
@@ -228,7 +242,7 @@ const Roster = ({
                         horizontal: 'right',
                       }}
                     >
-                      <Avatar>
+                      <Avatar onClick={(e) => openContact(e, u)}>
                         {u.isRoom
                           ? <GroupsIcon />
                           : initials(u)}
@@ -237,11 +251,10 @@ const Roster = ({
                   </ListItemAvatar>
 
                   <ListItemText
-                    primary={u.name}
+                    primary={<>{u.name} {!u.isRoom ? <span style={{ color: "#888" }}>- {u.user?.user_email}</span> : ''}</>}
                     primaryTypographyProps={{ textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}
-                    secondary={u.user?.user_email}
+                    secondary={u.activity ? u.activity : ""}
                     secondaryTypographyProps={{ textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}
-                    title={u.jid + (u.activity ? " - " + u.activity : "")}
                     />
                 </ListItemButton>
               </ListItem>
