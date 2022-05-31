@@ -26,7 +26,7 @@ const items = [
   },
 ]
 
-const SideBar = ({ client, me, setNav, nav, signOut, hostname }) => (
+const SideBar = ({ client, me, setNav, nav, signOut, hostname, activity }) => (
   <List sx={{
     display: "flex",
     flexDirection: "column",
@@ -35,7 +35,7 @@ const SideBar = ({ client, me, setNav, nav, signOut, hostname }) => (
     background: "#091c38",
     color: "white"
   }}>
-    <Profile client={client} me={me} signOut={signOut} />
+    <Profile client={client} me={me} signOut={signOut} activity={activity} />
 
     {items.map(i => {
       const IconComponent = i.iconComponent;

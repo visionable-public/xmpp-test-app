@@ -15,11 +15,9 @@ import Circle from '@mui/icons-material/Circle';
 
 import SettingsDialog from './settings';
 
-const Profile = ({ client, me, signOut }) => {
+const Profile = ({ client, me, signOut, activity }) => {
   const [, setStatus] = useState("available");
   const [anchorEl, setAnchorEl] = useState(null);
-  // const [newActivity, setNewActivity] = useState("");
-  const [activity, setActivity] = useState(""); // TODO: get last activity
   const [showSettings, setShowSettings] = useState(false);
 
   const open = Boolean(anchorEl);
@@ -38,19 +36,9 @@ const Profile = ({ client, me, signOut }) => {
   };
 
   const activityPrompt = () => { // TODO: use mui
-    const text = prompt("Enter a custom message");
-    // setNewActivity(text);
-    // sendActivity();
+    const text = prompt("Enter a custom message", activity);
     client.publishActivity({ text })
-    setActivity(text);
   }
-
-  /*
-  const sendActivity = () => {
-    client.publishActivity({ text: activity })
-    setActivity(newActivity);
-  }
-*/
 
   const statusList = [
     {

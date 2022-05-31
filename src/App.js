@@ -46,6 +46,7 @@ const App = ({ signOutAWS, user, hostname }) => {
   const [roster, setRoster] = useState([]);
   const [presence, setPresence] = useState({});
   const [activities, setActivities] = useState({});
+  const [activity, setActivity] = useState({});
   const [incomingInvites, setIncomingInvites] = useState([]);
   const [inviteResponses, setInviteResponses] = useState({});
   const [allUsers, setAllUsers] = useState([]);
@@ -240,7 +241,11 @@ const App = ({ signOutAWS, user, hostname }) => {
       xmpp.on("activity", (data) => {
         const { jid, activity: { text } } = data;
         console.log("ACTIVITY", jid, text);
-        setActivities((prev) => ({ ...prev, [jid]: text }));
+        if (jid === xmpp.config.jid) {
+          setActivity(text);
+        } else {
+          setActivities((prev) => ({ ...prev, [jid]: text }));
+        }
       });
 
       xmpp.on("*", async (type, data) => {
@@ -372,7 +377,7 @@ const App = ({ signOutAWS, user, hostname }) => {
 
   return (
     <div className="App">
-      <SideBar nav={nav} setNav={setNav} signOut={signOut} client={client} me={me} hostname={hostname} />
+      <SideBar nav={nav} setNav={setNav} signOut={signOut} client={client} me={me} hostname={hostname} activity={activity} />
 
       <Snackbar
         onClick={reconnect}
