@@ -316,11 +316,9 @@ const AddUserToRoomPrompt = ({ open, close, allUsers, client, room }) => {
 const upload = async (files, client) => {
   return await Promise.all(Array.from(files).map(async (f) => {
     const { name, size, type: mediaType } = f; // TODO files with spaces in name fail
-    console.log("here", name, size, mediaType);
     const service = await client.getUploadService();
     const slot = await client.getUploadSlot(service.jid, { name, size, mediaType })
     const { download: downloadUrl, upload: { url: uploadUrl } } = slot;
-    console.log("uploadUrl", uploadUrl);
     try {
       await fetch(uploadUrl, {
         method: "PUT",

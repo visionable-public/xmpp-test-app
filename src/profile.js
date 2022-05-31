@@ -12,13 +12,17 @@ import ListItemText from '@mui/material/ListItemText';
 import Settings from '@mui/icons-material/Settings';
 import Logout from '@mui/icons-material/Logout';
 import Circle from '@mui/icons-material/Circle';
+import EditIcon from '@mui/icons-material/Edit';
+import AccountBoxIcon from '@mui/icons-material/AccountBox';
 
 import SettingsDialog from './settings';
+import EditProfileDialog from './edit-profile';
 
 const Profile = ({ client, me, signOut, activity }) => {
   const [, setStatus] = useState("available");
   const [anchorEl, setAnchorEl] = useState(null);
   const [showSettings, setShowSettings] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
 
   const open = Boolean(anchorEl);
 
@@ -35,10 +39,14 @@ const Profile = ({ client, me, signOut, activity }) => {
     client.sendPresence({ status });
   };
 
-  const activityPrompt = () => { // TODO: use mui
+  const activityPrompt = () => {
     const text = prompt("Enter a custom message", activity);
     client.publishActivity({ text })
   }
+
+  const editProfile = () => {
+    setShowProfile(true);
+  };
 
   const statusList = [
     {
@@ -86,6 +94,16 @@ const Profile = ({ client, me, signOut, activity }) => {
         onClose={handleClose}
         onClick={handleClose}
       >
+        <MenuItem onClick={editProfile}>
+          <ListItemIcon>
+            <AccountBoxIcon fontSize="small" />
+          </ListItemIcon>
+
+          {me.name}
+        </MenuItem>
+
+        <Divider />
+
         {statusList.map((s) => (
           <MenuItem key={s.key} onClick={() => changeStatus(s.key)}>
             <ListItemIcon>
@@ -97,6 +115,10 @@ const Profile = ({ client, me, signOut, activity }) => {
         ))}
 
         <MenuItem onClick={activityPrompt}>
+          <ListItemIcon>
+            <EditIcon fontSize="small" />
+          </ListItemIcon>
+
           {activity || <i>Custom message</i>}
         </MenuItem>
 
@@ -118,6 +140,7 @@ const Profile = ({ client, me, signOut, activity }) => {
       </Menu>
 
       <SettingsDialog open={showSettings} onClose={() => setShowSettings(false)} client={client} me={me} />
+      <EditProfileDialog open={showProfile} onClose={() => setShowProfile(false)} client={client} me={me} />
     </>
   );
 };

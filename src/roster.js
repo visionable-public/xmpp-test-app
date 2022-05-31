@@ -123,7 +123,6 @@ const Roster = ({
   };
 
   const openContact = (event, user) => {
-    console.log('here', user);
     event.stopPropagation();
     setFocusedUser(user);
     setProfileAnchorEl(event.currentTarget);

@@ -349,26 +349,6 @@ const App = ({ signOutAWS, user, hostname }) => {
     client.sendMessage({ to: message.from, body: message.id, type: 'meeting-invite-reject' });
   };
 
-  /*
-  const changeName = () => {
-    client.publishVCard({ fullName: newName });
-  };
-
-  const getVCard = async () => {
-    try {
-      const card = await client.getVCard(jid);
-      console.log("my card", card);
-      setNewName(card?.fullName);
-    } catch (e) {
-      console.error("Error getting vcard", e);
-    }
-  };
-
-  const getMUCLightRooms = async () => {
-    const res = await client.getDiscoItems(MUC_LIGHT_HOSTNAME);
-  }
-*/
-
   if (!client) {
     return (
       <div className="App">Loading</div>

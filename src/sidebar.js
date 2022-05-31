@@ -26,7 +26,7 @@ const items = [
   },
 ]
 
-const SideBar = ({ client, me, setNav, nav, signOut, hostname, activity }) => (
+const SideBar = ({ client, me, setNav, nav, signOut, hostname, activity}) => (
   <List sx={{
     display: "flex",
     flexDirection: "column",
