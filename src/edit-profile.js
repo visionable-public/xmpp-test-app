@@ -69,11 +69,12 @@ const EditProfile = ({ client, me, onClose, open }) => {
 
       <DialogContent>
         {loading
-          ? <div>Loading</div>
+          ? <div>Loading...</div>
           : <Stack sx={{ m: 1, display: 'flex', gap: "1em" }}>
               <TextField onChange={e => setFullName(e.target.value)} label="Full Name (TODO)" defaultValue={fullName} />
               <TextField onChange={e => setPhone(e.target.value)} label="Phone" defaultValue={phone} />
               <TextField onChange={e => setOrganization(e.target.value)} label="Organization" defaultValue={organization} />
+              <TextField onChange={e => setTitle(e.target.value)} label="Title" defaultValue={title} />
             </Stack>}
       </DialogContent>
 

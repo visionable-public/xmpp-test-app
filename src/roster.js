@@ -164,7 +164,7 @@ const Roster = ({
       />
 
       {profileAnchorEl && focusedUser &&
-        <Contact user={focusedUser} anchorEl={profileAnchorEl} onClose={() => setProfileAnchorEl(null)}/>}
+        <Contact client={client} user={focusedUser} anchorEl={profileAnchorEl} onClose={() => setProfileAnchorEl(null)}/>}
 
       <Paper className="scroll-list-container" sx={{ width: 300 }}>
         <Box sx={{ px: 2 }}>

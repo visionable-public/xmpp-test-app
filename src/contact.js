@@ -1,4 +1,4 @@
-// import { useState } from "react";
+import { useState, useEffect } from "react";
 
 import {
   Popover,
@@ -7,13 +7,45 @@ import {
   Stack,
   Avatar,
   Typography,
+  TextField,
 } from "@mui/material";
+
 import GroupsIcon from '@mui/icons-material/Groups';
 
-const Contact = ({ anchorEl, user, onClose }) => {
+const Contact = ({ client, anchorEl, user, onClose }) => {
   console.log("rendering Contact card", user);
+  const [loading, setLoading] = useState(true);
+
+  const [fullName, setFullName] = useState("");
+  const [title, setTitle] = useState("");
+  const [phone, setPhone] = useState("");
+  const [organization, setOrganization] = useState("");
 
   const open = Boolean(anchorEl);
+
+  useEffect(async () => {
+    try {
+      const res = await client.getVCard(user.jid);
+      console.log('got user vcard', res);
+
+      setFullName(res.fullName || "");
+
+      res.records?.forEach(r => {
+        if (r.type === "tel") {
+          setPhone(r.value);
+        } else if (r.type === "title") {
+          setTitle(r.value);
+        } else if (r.type === "organization") {
+          setOrganization(r.value);
+        }
+      });
+
+      setLoading(false);
+    } catch(e) {
+      setLoading(false);
+    }
+
+  }, [anchorEl]);
 
   const status = user.isRoom ? '' : user.status;
   const color = {
@@ -73,6 +105,17 @@ const Contact = ({ anchorEl, user, onClose }) => {
         <br />
 
         <div>{user.activity}</div>
+
+        <br />
+
+        {loading
+          ? <div>Loading...</div>
+          : <Stack sx={{ display: 'flex', gap: "1em" }}>
+            {false && fullName && <TextField size="small" variant="standard" InputProps={{ readOnly: true }} label="Full Name (TODO)" defaultValue={fullName} />}
+            {phone && <TextField size="small" variant="standard" InputProps={{ readOnly: true }} label="Phone" defaultValue={phone} />}
+            {organization && <TextField size="small" variant="standard" InputProps={{ readOnly: true }} label="Organization" defaultValue={organization} />}
+            {title && <TextField size="small" variant="standard" InputProps={{ readOnly: true }} label="Title" defaultValue={title} />}
+          </Stack>}
       </Box>
     </Popover>
   );
