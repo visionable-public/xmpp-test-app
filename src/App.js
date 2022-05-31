@@ -46,7 +46,7 @@ const App = ({ signOutAWS, user, hostname }) => {
   const [roster, setRoster] = useState([]);
   const [presence, setPresence] = useState({});
   const [activities, setActivities] = useState({});
-  const [activity, setActivity] = useState({});
+  const [activity, setActivity] = useState("");
   const [incomingInvites, setIncomingInvites] = useState([]);
   const [inviteResponses, setInviteResponses] = useState({});
   const [allUsers, setAllUsers] = useState([]);
