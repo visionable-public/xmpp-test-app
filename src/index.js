@@ -22,9 +22,9 @@ const AppContainer = () => {
 
     Amplify.configure({
       Auth: {
-        region: json['aws-region'],
-        userPoolId: json['aws-user-pool-id'],
-        userPoolWebClientId: json['aws-user-pool-client-id'],
+        region: json.AWSRegion,
+        userPoolId: json.AWSUserPoolID,
+        userPoolWebClientId: json.AWSUserPoolClientID,
       },
     });
 
@@ -79,7 +79,9 @@ ReactDOM.render(
 
 async function getServiceConfig(hostname) {
   try {
-    const res = await fetch(`https://${hostname}/config.json`, { mode: "cors" });
+    const [serviceName, ...[domain]] = hostname.split(/\.(.*)/s); // split out the serviceName from the rest of the host
+    const apiBase = `https://${serviceName}-api.${domain}`; // e.g. saas-api.visionable.one
+    const res = await fetch(`${apiBase}/api/config`, { mode: "cors" });
     return await res.json();
   } catch(e) {
     console.log(e);
