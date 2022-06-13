@@ -53,6 +53,7 @@ const App = ({ signOutAWS, user, hostname }) => {
   const [nav, setNav] = useState("contacts");
   const [connected, setConnected] = useState(false);
   const [server] = useState(hostname);
+  const [globalLink, setGlobalLink] = useState(null);
 
   const [serviceName, ...[domain]] = server.split(/\.(.*)/s); // split out the serviceName from the rest of the host
   const xmppHostname = `${serviceName}-msg.${domain}`; // e.g. saas-msg.visionable.one
@@ -85,6 +86,9 @@ const App = ({ signOutAWS, user, hostname }) => {
       const cognitoUsers = await getAllUsers(jwt, apiBase);
       const extendedUsers = cognitoUsers.map((u) => ({ ...u, name: userFullName(u) }));
       setAllUsers(extendedUsers);
+
+      const accountInfo = await getAccountInfo(jwt, apiBase);
+      setGlobalLink(getGlobalLink(accountInfo));
 
       window.client = xmpp;
 
@@ -357,7 +361,7 @@ const App = ({ signOutAWS, user, hostname }) => {
 
   return (
     <div className="App">
-      <SideBar nav={nav} setNav={setNav} signOut={signOut} client={client} me={me} hostname={hostname} activity={activity} />
+      <SideBar nav={nav} setNav={setNav} signOut={signOut} client={client} me={me} hostname={hostname} activity={activity} globalLink={globalLink} />
 
       <Snackbar
         onClick={reconnect}
@@ -438,6 +442,19 @@ async function getAllMessages({ client, start, after }) {
 
   if (!complete) {
     getAllMessages({ client, after: last });
+  }
+}
+
+async function getAccountInfo(jwt, apiBase) {
+  const res = await fetch(`${apiBase}/api/account/info`, { headers: { Authorization: jwt } });
+  return res.ok ? res.json() : {};
+}
+
+function getGlobalLink(accountInfo) {
+  try {
+    return JSON.parse(accountInfo?.account_data || "null")?.globalLink;
+  } catch(e) {
+    return null;
   }
 }
 

@@ -97,7 +97,7 @@ const Message = ({ client, user, API_BASE, jwt, allUsers }) => {
     }
 
     const type = user.isRoom ? 'groupchat' : 'chat';
-    client.sendMessage({ to: user.jid, body: message, type });
+    client.sendMessage({ to: user.jid, body: message, type, from: client.config.jid });
     setMessage("");
   };
 

@@ -9,6 +9,7 @@ import {
 import {
   Contacts as ContactsIcon,
   Chat as ChatIcon,
+  Link as LinkIcon,
 } from "@mui/icons-material";
 
 import Profile from './profile';
@@ -26,7 +27,7 @@ const items = [
   },
 ]
 
-const SideBar = ({ client, me, setNav, nav, signOut, hostname, activity}) => (
+const SideBar = ({ client, me, setNav, nav, signOut, hostname, activity, globalLink}) => (
   <List sx={{
     display: "flex",
     flexDirection: "column",
@@ -54,17 +55,17 @@ const SideBar = ({ client, me, setNav, nav, signOut, hostname, activity}) => (
         </ListItem>
       )})}
 
-    {/* <ListItem disablePadding sx={{ mt: "auto" }}> */}
-    {/*   <ListItemButton onClick={signOut}> */}
-    {/*     <ListItemIcon> */}
-    {/*       <LogoutIcon sx={{ color: "white" }} /> */}
-    {/*     </ListItemIcon> */}
+    {globalLink && (
+      <ListItem disablePadding>
+        <ListItemButton onClick={() => window.open(globalLink)}>
+          <ListItemIcon>
+            <LinkIcon sx={{ color: "white" }} />
+          </ListItemIcon>
 
-    {/*     <ListItemText> */}
-    {/*       Log Out */}
-    {/*     </ListItemText> */}
-    {/*   </ListItemButton> */}
-    {/* </ListItem> */}
+          <ListItemText>Global Link</ListItemText>
+        </ListItemButton>
+      </ListItem>
+    )}
 
     <ListItem sx={{ mt: "auto", justifyContent: "center", color: "#bbb" }}>
       {hostname}
