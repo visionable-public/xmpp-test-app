@@ -60,7 +60,7 @@ const AddChatPrompt = ({ open, close, add, allUsers }) => {
 };
 
 // TODO use the name property
-const userDisplayName = (u) => `${u.user_firstname} ${u.user_lastname} (${u.user_email})`;
+const userDisplayName = (u) => `${u.first_name} ${u.last_name} (${u.email})`;
 
 const Messages = ({ client, allUsers, roster, jwt, API_BASE }) => {
   const [search, setSearch] = useState("");
@@ -89,8 +89,8 @@ const Messages = ({ client, allUsers, roster, jwt, API_BASE }) => {
     const s = search.toLowerCase();
     return u.name?.toLowerCase().includes(s)
       || s.includes(u.name?.toLowerCase())
-      || u.user?.user_email?.includes(s)
-      || s.includes(u.user?.user_email);
+      || u.user?.email?.includes(s)
+      || s.includes(u.user?.email);
   });
 
   const addChat = (uuid) => {
@@ -143,7 +143,7 @@ const Messages = ({ client, allUsers, roster, jwt, API_BASE }) => {
                 <ListItemText
                   primary={u.name}
                   primaryTypographyProps={{ textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}
-                  secondary={u.user?.user_email}
+                  secondary={u.user?.email}
                   secondaryTypographyProps={{ textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}
                   title={u.jid}
                 />

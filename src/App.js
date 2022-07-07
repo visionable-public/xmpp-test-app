@@ -427,12 +427,13 @@ const getAllUsers = async (jwt, apiBase) => {
 }
 
 function userFullName(user) {
+  console.log("userFullName", user);
   return user?.name
   ? user.name
-    : user?.user_displayname
-      ? user.user_displayname
-      : user?.user_firstname
-        ? `${user.user_firstname} ${user.user_lastname}`
+    : user?.display_name
+      ? user.display_name
+      : user?.first_name
+        ? `${user.first_name} ${user.last_name}`
         : "[No Name]";
 }
 

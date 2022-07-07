@@ -98,7 +98,7 @@ const Contact = ({ client, anchorEl, user, onClose }) => {
           <Box sx={{ pl: 2 }}>
             <Typography sx={{ fontWeight: 'bold', p: 0, m: 0 }}>{user.name}</Typography>
             {!user.isRoom && <div>{user.status}</div>}
-            {!user.isRoom && <div>{user.user.user_email}</div>}
+            {!user.isRoom && <div>{user.user.email}</div>}
           </Box>
         </Stack>
 

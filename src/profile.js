@@ -81,7 +81,7 @@ const Profile = ({ client, me, signOut, activity }) => {
         <ListItemText
           primary={me.name}
           primaryTypographyProps={{ color: "white", textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}
-          secondary={me.user_email}
+          secondary={me.email}
           secondaryTypographyProps={{ color: "white", textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}
           title={client.config.jid}
         />

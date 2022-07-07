@@ -92,7 +92,7 @@ const AddContactPrompt = ({ open, close, add, allUsers }) => {
 };
 
 // TODO use teh name property
-const userDisplayName = (u) => `${u.user_firstname} ${u.user_lastname} (${u.user_email})`;
+const userDisplayName = (u) => `${u.first_name} ${u.last_name} (${u.email})`;
 
 const Roster = ({
   roster,
@@ -250,7 +250,7 @@ const Roster = ({
                   </ListItemAvatar>
 
                   <ListItemText
-                    primary={<>{u.name} {!u.isRoom ? <span style={{ color: "#888" }}>- {u.user?.user_email}</span> : ''}</>}
+                    primary={<>{u.name} {!u.isRoom ? <span style={{ color: "#888" }}>- {u.user?.email}</span> : ''}</>}
                     primaryTypographyProps={{ textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}
                     secondary={u.activity ? u.activity : ""}
                     secondaryTypographyProps={{ textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}

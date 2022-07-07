@@ -298,7 +298,7 @@ const AddUserToRoomPrompt = ({ open, close, allUsers, client, room }) => {
           sx={{ width: 400, my: 1 }}
           onChange={(_, u) => u && setUser(u.id)}
           options={allUsers.map(u => ({
-            label: `${u.name} (${u.user_email})`,
+            label: `${u.name} (${u.email})`,
             id: u.user_id,
           }))}
           renderInput={(params) => <TextField {...params} label="User" />}
