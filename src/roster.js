@@ -137,7 +137,7 @@ const Roster = ({
   const addRoom = async (name) => {
     const uuid = crypto.randomUUID();
     const jid = `${uuid}@${MUC_LIGHT_HOSTNAME}`;
-    const res = await client.joinRoom(jid);
+    await client.joinRoom(jid);
     client.configureRoom(jid, { fields: [ { name: 'roomname', value: name } ] });
   }
 
@@ -218,7 +218,7 @@ const Roster = ({
 
             return (
               <ListItem key={u.jid} disablePadding>
-                <ListItemButton onClick={(e) => setSubNav(u)}>
+                <ListItemButton onClick={() => setSubNav(u)}>
                   <ListItemAvatar>
                     <Badge
                       componentsProps={{

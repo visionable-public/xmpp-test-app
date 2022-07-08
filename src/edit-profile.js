@@ -5,19 +5,13 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  DialogContentText,
   DialogActions,
-  FormControlLabel,
   Button,
-  Checkbox,
   TextField,
 } from '@mui/material';
 
-import { Auth } from "aws-amplify";
-
 const EditProfile = ({ client, me, onClose, open }) => {
   const [loading, setLoading] = useState(true);
-  // const [vCard, setVCard] = useState(null);
 
   const [fullName, setFullName] = useState("");
   const [title, setTitle] = useState("");

@@ -16,7 +16,6 @@ import {
   ListItemAvatar,
   ListItemText,
   Avatar,
-  // Autocomplete,
   OutlinedInput,
   FormControl,
   FormControlLabel,
@@ -30,6 +29,8 @@ import {
 } from "@mui/material";
 
 import AddIcon from '@mui/icons-material/Add';
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
 
 const AddGroupPrompt = ({ open, close, allUsers, roster, client }) => {
   const [users, setUsers] = useState([]);
@@ -54,11 +55,10 @@ const AddGroupPrompt = ({ open, close, allUsers, roster, client }) => {
     setUsers(typeof value === 'string' ? value.split(',') : value);
   };
 
-  const removeUser = (e) => {
+  const removeUser = (value) => {
+    setUsers(users.filter(u => u !== value));
     // TODO
-    console.log("removeUser", e.target.value);
-    e.stopPropagation();
-    e.preventDefault();
+    console.log("removeUser", value);
   }
 
   return (
@@ -93,7 +93,7 @@ const AddGroupPrompt = ({ open, close, allUsers, roster, client }) => {
           renderValue={(selected) => (
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
               {selected.map((value) => (
-                <Chip key={value} label={value} onDelete={() => removeUser(value)} />
+                <Chip key={value} label={value} onMouseDown={(e) => e.stopPropagation()} onDelete={() => removeUser(value)} />
               ))}
             </Box>
           )}
@@ -117,18 +117,42 @@ const AddGroupPrompt = ({ open, close, allUsers, roster, client }) => {
   );
 };
 
-const Group = ({ group }) => {
+const Group = ({ group, roster, client }) => {
   if (!group) { return null; }
+
+  const editTitle = () => {
+    const title = prompt("New Title", group.name); // TODO make sure name isn't taken
+
+    group.users.forEach(u => { // for each user in the group
+      const groups = u.groups // get their list of groups, including this one
+        .filter(g => g !== group.name) // remove the previous group name
+        .concat([title]); // add the new name
+
+      client.updateRosterItem({ jid: u.jid, groups });
+    });
+  };
+
+  const deleteGroup = () => {
+    group.users.forEach(u => { // for each user in the group
+      const groups = u.groups // get their list of groups
+        .filter(g => g !== group.name) // remove this group name
+
+      client.updateRosterItem({ jid: u.jid, groups });
+    });
+  }
+
   return <div>
     <Stack sx={{ flexGrow: 1 }}>
       <Stack direction="row" sx={{ px: 2, background: "white", alignItems: "center" }}>
         <h2>{group.name}</h2>
+        <EditIcon sx={{ mx: 1, cursor: "pointer" }} onClick={editTitle} />
+        <DeleteIcon sx={{ mx: 1, cursor: "pointer" }} onClick={deleteGroup} />
       </Stack>
 
       <Stack sx={{ background: "#eee", flexGrow: 1, overflow: "auto", px: "10%" }}>
         <List>
           {group.users.map(u => (
-            <ListItem>
+            <ListItem key={u.jid}>
               {u.name}
             </ListItem>
           ))}
@@ -209,7 +233,7 @@ const Groups = ({ client, allUsers, roster, jwt, API_BASE, privateGroups }) => {
       </Paper>
 
       <Paper className="right-section">
-        <Group group={subNav} />
+        <Group group={subNav} roster={roster} client={client} />
       </Paper>
     </>
   );

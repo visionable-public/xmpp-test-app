@@ -217,9 +217,11 @@ const App = ({ signOutAWS, user, hostname }) => {
       });
 
       xmpp.on("roster:update", async (data) => { // roster item change
+        /*
         data.roster.items.forEach((r) => {
           xmpp.searchHistory({ with: r.jid, paging: { before: "" }}); // get the last few messages
         });
+        */
 
         setRoster((await xmpp.getRoster()).items)
       });

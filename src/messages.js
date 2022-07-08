@@ -5,7 +5,6 @@ import {
   TextField,
   Paper,
   Stack,
-  IconButton,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -20,7 +19,6 @@ import {
 } from "@mui/material";
 import { useLiveQuery } from "dexie-react-hooks";
 
-import AddIcon from '@mui/icons-material/Add';
 import GroupsIcon from '@mui/icons-material/Groups';
 
 import Message from "./message";
@@ -113,9 +111,6 @@ const Messages = ({ client, allUsers, roster, jwt, API_BASE }) => {
         <Box sx={{ px: 2 }}>
           <Stack direction="row" sx={{ alignItems: "center" }}>
             <h2>Chat</h2>
-            {/* <IconButton sx={{ ml: "auto" }} onClick={() => setShowAddChat(true)}> */}
-            {/*   <AddIcon fontSize="inherit" /> */}
-            {/* </IconButton> */}
           </Stack>
 
           <TextField
