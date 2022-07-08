@@ -202,7 +202,7 @@ const Roster = ({
         <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
           <Tabs value={tab} onChange={(_, idx) => setTab(idx)} aria-label="basic tabs example">
             <Tab label="Contacts" index={0} />
-            <Tab label="Groups" index={1} />
+            <Tab label="MUCs" index={1} />
           </Tabs>
         </Box>
 

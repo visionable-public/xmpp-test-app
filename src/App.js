@@ -16,6 +16,7 @@ import db from "./db";
 import "./App.css";
 import SideBar from "./sidebar";
 import Roster from "./roster";
+import Groups from "./groups";
 import Messages from "./messages";
 import { Auth } from "aws-amplify";
 
@@ -113,6 +114,7 @@ const App = ({ signOutAWS, user, hostname }) => {
         // getAllMessages({ client: xmpp, start: lastMessage?.timestamp });
 
         // Get the last few messages for each of our roster items
+        /*
         roster.forEach((r) => {
           if (r.groups.length) {
             xmpp.searchHistory({ to: r.jid, paging: { before: "" }}); // 'to' for MUCs
@@ -120,6 +122,7 @@ const App = ({ signOutAWS, user, hostname }) => {
             xmpp.searchHistory({ with: r.jid, paging: { before: "" }});
           }
         });
+        */
       });
 
       xmpp.on("message", (message) => {
@@ -322,6 +325,13 @@ const App = ({ signOutAWS, user, hostname }) => {
   console.log('new presence list', presence);
   console.log("extended roster", extendedRoster);
 
+  const privateGroups = extendedRoster
+    .filter(i => !i.isRoom)
+    .map(i => i.groups)
+    .flat()
+    .filter((value, index, self) => self.indexOf(value) === index)
+    .map(g => ({ name: g, users: extendedRoster.filter(i => i.groups.includes(g)) }));
+
   // find my own user from the User API
   const me = allUsers.find((u) => client.jid.match(u.user_id)) || {};
 
@@ -361,7 +371,16 @@ const App = ({ signOutAWS, user, hostname }) => {
 
   return (
     <div className="App">
-      <SideBar nav={nav} setNav={setNav} signOut={signOut} client={client} me={me} hostname={hostname} activity={activity} globalLink={globalLink} />
+      <SideBar
+        nav={nav}
+        setNav={setNav}
+        signOut={signOut}
+        client={client}
+        me={me}
+        hostname={hostname}
+        activity={activity}
+        globalLink={globalLink}
+        />
 
       <Snackbar
         onClick={reconnect}
@@ -399,7 +418,17 @@ const App = ({ signOutAWS, user, hostname }) => {
               MUC_LIGHT_HOSTNAME={mucHostname}
               jwt={jwt}
               />
-            : null}
+            : nav === 'groups'
+              ? <Groups
+              privateGroups={privateGroups}
+              roster={extendedRoster}
+              allUsers={allUsers}
+              client={client}
+              API_BASE={apiBase}
+              MUC_LIGHT_HOSTNAME={mucHostname}
+              jwt={jwt}
+              />
+              : null}
       </Box>
     </div>
   );
@@ -427,7 +456,6 @@ const getAllUsers = async (jwt, apiBase) => {
 }
 
 function userFullName(user) {
-  console.log("userFullName", user);
   return user?.name
   ? user.name
     : user?.display_name

@@ -8,6 +8,7 @@ import {
 
 import {
   Contacts as ContactsIcon,
+  Groups as GroupsIcon,
   Chat as ChatIcon,
   Link as LinkIcon,
 } from "@mui/icons-material";
@@ -19,6 +20,11 @@ const items = [
     route: "contacts",
     label: "Contacts",
     iconComponent: ContactsIcon,
+  },
+  {
+    route: "groups",
+    label: "Groups",
+    iconComponent: GroupsIcon,
   },
   {
     route: "messages",
