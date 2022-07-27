@@ -90,3 +90,14 @@ async function getServiceConfig(hostname) {
     window.location.reload();
   }
 }
+
+if ('serviceWorker'  in navigator) {
+  console.log("registering sw");
+  navigator.serviceWorker.register('./firebase-messaging-sw.js')
+    .then(function(registration) {
+      console.log('Registration was successful: ', registration)
+    })
+    .catch(function(e) {
+      console.error('Registration has filed', e)
+    })
+}

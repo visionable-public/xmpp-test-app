@@ -16,6 +16,7 @@
     "aws-amplify": "^4.3.21",
     "dexie": "^3.2.1",
     "dexie-react-hooks": "^1.1.1",
+    "firebase": "^9.9.1",
     "gh-pages": "^3.2.3",
     "qrcode.react": "^3.0.1",
     "react": "^17.0.2",

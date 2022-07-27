@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import {
   List,
   ListItem,
@@ -14,6 +15,7 @@ import {
 } from "@mui/icons-material";
 
 import Profile from './profile';
+import { fetchToken } from "./firebase";
 
 const items = [
   {
@@ -33,15 +35,33 @@ const items = [
   },
 ]
 
-const SideBar = ({ client, me, setNav, nav, signOut, hostname, activity, globalLink, jwt }) => (
-  <List sx={{
-    display: "flex",
-    flexDirection: "column",
-    width: "240px",
-    minWidth: "240px",
-    background: "#091c38",
-    color: "white"
-  }}>
+const SideBar = ({ client, me, setNav, nav, signOut, hostname, activity, globalLink, jwt }) => {
+  const [isTokenFound, setTokenFound] = useState(false);
+
+  useEffect(() => {
+    fetchToken(setTokenFound);
+  }, []);
+
+  const enableNotifications = () => {
+    console.log('Requesting permission...');
+    Notification.requestPermission().then((permission) => {
+    console.log(permission);
+      if (permission === 'granted') {
+        console.log('Notification permission granted.');
+        fetchToken(setTokenFound);
+      }
+    })
+  };
+
+  return (
+    <List sx={{
+      display: "flex",
+        flexDirection: "column",
+        width: "240px",
+        minWidth: "240px",
+        background: "#091c38",
+        color: "white"
+    }}>
     <Profile client={client} me={me} signOut={signOut} activity={activity} jwt={jwt} />
 
     {items.map(i => {
@@ -49,34 +69,41 @@ const SideBar = ({ client, me, setNav, nav, signOut, hostname, activity, globalL
 
       return (
         <ListItem key={i.route} disablePadding sx={{ background: nav === i.route ? 'rgba(255,255,255,0.1)' : 'transparent' }}>
-          <ListItemButton onClick={() => setNav(i.route)}>
-            <ListItemIcon>
-              <IconComponent sx={{ color: "white" }} />
-            </ListItemIcon>
+        <ListItemButton onClick={() => setNav(i.route)}>
+        <ListItemIcon>
+        <IconComponent sx={{ color: "white" }} />
+        </ListItemIcon>
 
-            <ListItemText>
-              {i.label}
-            </ListItemText>
-          </ListItemButton>
+        <ListItemText>
+        {i.label}
+        </ListItemText>
+        </ListItemButton>
         </ListItem>
       )})}
 
     {globalLink && (
       <ListItem disablePadding>
-        <ListItemButton onClick={() => window.open(globalLink)}>
-          <ListItemIcon>
-            <LinkIcon sx={{ color: "white" }} />
-          </ListItemIcon>
+      <ListItemButton onClick={() => window.open(globalLink)}>
+      <ListItemIcon>
+      <LinkIcon sx={{ color: "white" }} />
+      </ListItemIcon>
 
-          <ListItemText>Global Link</ListItemText>
-        </ListItemButton>
+      <ListItemText>Global Link</ListItemText>
+      </ListItemButton>
       </ListItem>
     )}
 
+    {isTokenFound &&
+        <ListItem onClick={enableNotifications}>Notifications enabled</ListItem>}
+
+    {!isTokenFound &&
+        <ListItem onClick={enableNotifications}>Enable Notifications</ListItem>}
+
     <ListItem sx={{ mt: "auto", justifyContent: "center", color: "#bbb" }}>
-      {hostname}
+    {hostname}
     </ListItem>
-  </List>
-);
+    </List>
+  );
+};
 
 export default SideBar;
