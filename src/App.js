@@ -382,6 +382,7 @@ const App = ({ signOutAWS, user, hostname }) => {
         hostname={hostname}
         activity={activity}
         globalLink={globalLink}
+        jwt={jwt}
         />
 
       <Snackbar

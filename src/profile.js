@@ -18,7 +18,7 @@ import AccountBoxIcon from '@mui/icons-material/AccountBox';
 import SettingsDialog from './settings';
 import EditProfileDialog from './edit-profile';
 
-const Profile = ({ client, me, signOut, activity }) => {
+const Profile = ({ client, me, signOut, activity, jwt }) => {
   const [, setStatus] = useState("available");
   const [anchorEl, setAnchorEl] = useState(null);
   const [showSettings, setShowSettings] = useState(false);
@@ -37,6 +37,16 @@ const Profile = ({ client, me, signOut, activity }) => {
   const changeStatus = (status) => {
     setStatus(status);
     client.sendPresence({ status });
+
+    // also push it to 
+    fetch(`http://presence-api-lb-1290633754.us-east-1.elb.amazonaws.com/api/presence/status`, {
+      method: 'POST',
+      body: JSON.stringify({ status: status.toUpperCase() }),
+      headers: {
+        Authorization: jwt ,
+        'Content-Type': 'application/json',
+      },
+    })
   };
 
   const activityPrompt = () => {
