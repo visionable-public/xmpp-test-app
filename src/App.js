@@ -25,7 +25,8 @@ import IqInbox from './inbox.ts';
 window.db = db;
 
 const PROTOCOL = "wss";
-const PORT = "5443";
+// const lastPort = localStorage.getItem("PORT");
+const PORT = prompt("XMPP Port", "5443");
 const ENDPOINT = "ws-xmpp";
 
 const resource = localStorage.getItem("xmpp-resource") || crypto.randomUUID();
