@@ -21,6 +21,7 @@ import Messages from "./messages";
 import { Auth } from "aws-amplify";
 
 import IqInbox from './inbox.ts';
+import IqStatus from './status.ts';
 
 window.db = db;
 
@@ -81,6 +82,7 @@ const App = ({ signOutAWS, user, hostname }) => {
       const xmpp = await initXMPP(jid, jwt, xmppHostname);
 
       xmpp.use(IqInbox);
+      xmpp.use(IqStatus);
 
       setClient(xmpp);
       setConnected(true);

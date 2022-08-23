@@ -36,9 +36,10 @@ const Profile = ({ client, me, signOut, activity, jwt }) => {
 
   const changeStatus = (status) => {
     setStatus(status);
-    client.sendPresence({ status });
+    // client.sendPresence({ status });
 
-    // also push it to 
+    // push it to Frank's Presence API
+    /*
     fetch(`http://presence-api-lb-1290633754.us-east-1.elb.amazonaws.com/api/presence/status`, {
       method: 'POST',
       body: JSON.stringify({ status: status.toUpperCase() }),
@@ -47,6 +48,19 @@ const Profile = ({ client, me, signOut, activity, jwt }) => {
         'Content-Type': 'application/json',
       },
     })
+    */
+
+    // set PEP Status
+    client.updateCaps();
+    client.sendPresence({
+      legacyCapabilities: client.disco.getCaps() // have to enable this to get PEP notifications
+    });
+
+    client.publish('', 'http://visionable.com/p/status', {
+      itemType: 'http://visionable.com/p/status',
+      status,
+      timestamp: Date.now()
+    });
   };
 
   const activityPrompt = () => {
