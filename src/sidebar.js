@@ -15,7 +15,7 @@ import {
 } from "@mui/icons-material";
 
 import Profile from './profile';
-import { fetchToken } from "./firebase";
+// import { fetchToken } from "./firebase";
 
 const items = [
   {
@@ -39,7 +39,7 @@ const SideBar = ({ client, me, setNav, nav, signOut, hostname, activity, globalL
   const [isTokenFound, setTokenFound] = useState(false);
 
   useEffect(() => {
-    fetchToken(setTokenFound);
+    // fetchToken(setTokenFound);
   }, []);
 
   const enableNotifications = () => {
@@ -48,7 +48,7 @@ const SideBar = ({ client, me, setNav, nav, signOut, hostname, activity, globalL
     console.log(permission);
       if (permission === 'granted') {
         console.log('Notification permission granted.');
-        fetchToken(setTokenFound);
+        // fetchToken(setTokenFound);
       }
     })
   };

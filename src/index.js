@@ -91,7 +91,8 @@ async function getServiceConfig(hostname) {
   }
 }
 
-if ('serviceWorker'  in navigator) {
+/*
+if ('serviceWorker' in navigator) {
   console.log("registering sw");
   navigator.serviceWorker.register('./firebase-messaging-sw.js')
     .then(function(registration) {
@@ -101,3 +102,4 @@ if ('serviceWorker'  in navigator) {
       console.error('Registration has filed', e)
     })
 }
+*/

@@ -456,9 +456,16 @@ const IncomingInvites = ({ accept, reject, invites, responses }) =>
     </Dialog>
   ));
 
-const getAllUsers = async (jwt, apiBase) => {
-  const res = await fetch(`${apiBase}/api/user`, { headers: { Authorization: jwt } });
-  return res.ok ? res.json() : [];
+const getAllUsers = async (jwt, apiBase, page = 1) => {
+  const res = await fetch(`${apiBase}/api/user?page=${page}`, { headers: { Authorization: jwt } });
+  if (!res.ok) {
+    return [];
+  }
+  const json = await res.json();
+  if (json.current_page === json.last_page) {
+    return json.data;
+  }
+  return [...json.data, ...(await getAllUsers(jwt, apiBase, page + 1))];
 }
 
 function userFullName(user) {
