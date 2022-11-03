@@ -26,8 +26,7 @@ import IqStatus from './status.ts';
 window.db = db;
 
 const PROTOCOL = "wss";
-// const lastPort = localStorage.getItem("PORT");
-const PORT = 5443; // prompt("XMPP Port", "5443");
+const PORT = 443;
 const ENDPOINT = "ws-xmpp";
 
 const resource = localStorage.getItem("xmpp-resource") || crypto.randomUUID();
