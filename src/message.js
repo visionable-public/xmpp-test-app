@@ -263,7 +263,7 @@ const Chat = ({ message, client, isRoom }) => {
 }
 
 async function createMeeting(API_BASE, jwt) {
-  const url = `${API_BASE}/api/meeting`;
+  const url = `${API_BASE}/api/meetings`;
   const mstart = parseInt(new Date().getTime() / 1000);
 
   const formData = new FormData();

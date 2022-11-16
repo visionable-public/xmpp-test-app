@@ -456,7 +456,7 @@ const IncomingInvites = ({ accept, reject, invites, responses }) =>
   ));
 
 const getAllUsers = async (jwt, apiBase, page = 1) => {
-  const res = await fetch(`${apiBase}/api/user?page=${page}`, { headers: { Authorization: jwt } });
+  const res = await fetch(`${apiBase}/api/users?page=${page}`, { headers: { Authorization: jwt } });
   if (!res.ok) {
     return [];
   }
