@@ -211,7 +211,7 @@ const App = ({ signOutAWS, user, hostname }) => {
 
       xmpp.on("subscribe", (data) => { // if someone subscribes to us..
         xmpp.acceptSubscription(data.from); // auto accept
-        xmpp.subscribe(data.from);
+        // xmpp.subscribe(data.from);
       });
 
       xmpp.on("unsubscribe", () => { // if someone removes me from their roster
