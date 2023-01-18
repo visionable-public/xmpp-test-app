@@ -101,7 +101,9 @@ const App = ({ signOutAWS, user, hostname }) => {
         xmpp.sendPresence({
           legacyCapabilities: xmpp.disco.getCaps() // have to enable this to get PEP notifications
         });
-        xmpp.enableKeepAlive();
+        xmpp.enableKeepAlive({
+          interval: 10,
+        });
         xmpp.enableCarbons();
 
         const roster = (await xmpp.getRoster()).items;
