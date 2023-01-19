@@ -25,10 +25,6 @@ import IqStatus from './status.ts';
 
 window.db = db;
 
-const PROTOCOL = "wss";
-const PORT = 443;
-const ENDPOINT = "ws-xmpp";
-
 const resource = localStorage.getItem("xmpp-resource") || crypto.randomUUID();
 localStorage.setItem("xmpp-resource", resource);
 
@@ -38,7 +34,8 @@ const initXMPP = async (jid, password, hostname) =>
     password,
     resource,
     transports: {
-      websocket: `${PROTOCOL}://${hostname}:${PORT}/${ENDPOINT}`,
+      // bosh: `https://${hostname}:443/http-bind`,
+      websocket: `wss://${hostname}:443/ws-xmpp`,
     },
   });
 
