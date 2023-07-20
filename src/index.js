@@ -11,7 +11,7 @@ const Context = createContext({});
 
 const HOSTNAME_KEY = "visionable-xmpp-hostname";
 const lastHostname = localStorage.getItem(HOSTNAME_KEY);
-const hostname = lastHostname || prompt("Enter hostname", "saas.visionable.one");
+const hostname = lastHostname || prompt("Enter hostname", "saas.visionable.ltd");
 localStorage.setItem(HOSTNAME_KEY, hostname);
 
 const AppContainer = () => {
